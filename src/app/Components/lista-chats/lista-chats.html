@@ -1,0 +1,62 @@
+<div class="flex flex-col h-full w-full bg-[#2c0a63] text-white">
+  
+  <!-- Tabs Privados / Grupos -->
+  <div class="flex p-2 bg-[#4c26a6]">
+    <button 
+      class="flex-1 py-2 mx-1 rounded-md transition"
+      [ngClass]="selectedTab === 'privados' ? 'bg-[#6931e6] hover:bg-[#5a28c8]' : 'bg-[#2c0a63] hover:bg-[#3a0f7b]'"
+      (click)="selectedTab = 'privados'">
+      Privados
+    </button>
+    <button 
+      class="flex-1 py-2 mx-1 rounded-md transition"
+      [ngClass]="selectedTab === 'grupos' ? 'bg-[#6931e6] hover:bg-[#5a28c8]' : 'bg-[#2c0a63] hover:bg-[#3a0f7b]'"
+      (click)="selectedTab = 'grupos'">
+      Grupos
+    </button>
+  </div>
+
+  <!-- Barra de búsqueda simple -->
+  <div class="p-2 bg-[#3a0f7b]">
+    <input type="text" placeholder="Buscar..." 
+           class="w-full py-2 px-4 rounded-full bg-[#2c0a63] text-white placeholder-gray-400 focus:outline-none" />
+  </div>
+
+  <!-- Lista de chats -->
+  <div class="flex-1 overflow-y-auto p-2">
+    <ul class="space-y-2">
+      <li class="p-3 rounded-lg bg-[#3d147e] hover:bg-[#4b1fac] cursor-pointer transition">
+        <div class="flex items-center justify-between">
+          <span class="font-semibold">Juan Pérez</span>
+          <span class="text-xs text-gray-300">10:45 AM</span>
+        </div>
+        <p class="text-sm text-gray-300 truncate">¡Hola! ¿Cómo estás?</p>
+      </li>
+
+      <li class="p-3 rounded-lg bg-[#3d147e] hover:bg-[#4b1fac] cursor-pointer transition">
+        <div class="flex items-center justify-between">
+          <span class="font-semibold">María López</span>
+          <span class="text-xs text-gray-300">Ayer</span>
+        </div>
+        <p class="text-sm text-gray-300 truncate">Nos vemos mañana en la oficina</p>
+      </li>
+
+      <li class="p-3 rounded-lg bg-[#3d147e] hover:bg-[#4b1fac] cursor-pointer transition">
+        <div class="flex items-center justify-between">
+          <span class="font-semibold">Equipo Proyecto X</span>
+          <span class="text-xs text-gray-300">Lun</span>
+        </div>
+        <p class="text-sm text-gray-300 truncate">Carlos: He subido los archivos al servidor</p>
+      </li>
+
+      <li class="p-3 rounded-lg bg-[#3d147e] hover:bg-[#4b1fac] cursor-pointer transition">
+        <div class="flex items-center justify-between">
+          <span class="font-semibold">Familia</span>
+          <span class="text-xs text-gray-300">12 Sep</span>
+        </div>
+        <p class="text-sm text-gray-300 truncate">Mamá: ¿Cuándo vienes a visitarnos?</p>
+      </li>
+    </ul>
+  </div>
+
+</div>

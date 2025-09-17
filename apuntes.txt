@@ -1,0 +1,2 @@
+Build: ng serve
+Generar un nuevo componente: ng generate component <nombre-del-componente>

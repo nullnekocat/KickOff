@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+.card {
+  background-color: #4007bc;
+  font-size: 1.875rem; /* Tailwind's text-3xl */
+  color: #fff;
+  border-radius: 0.75rem; /* Tailwind's rounded-xl */
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1); /* Tailwind's shadow-lg */
+  padding: 2rem; /* Tailwind's p-6 */
+  width: 16rem; /* Tailwind's w-64 */
+  height: 20rem; /* Tailwind's h-80 */
+}
+
+.menu-container {
+  transition: transform 0.3s ease;
+}
+
+.menu-container.mobile-hidden {
+  transform: translateX(-100%);
+}
+
+.overlay-backdrop {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 40;
+}
+
+.overlay-backdrop.active {
+  display: block;
+}
+
+@media (min-width: 768px) {
+  .menu-container {
+    transform: translateX(0) !important;
+  }
+  .overlay-backdrop {
+    display: none !important;
+  }
+}
