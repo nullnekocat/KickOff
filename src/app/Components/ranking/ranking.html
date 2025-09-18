@@ -1,0 +1,82 @@
+<div class="flex flex-col md:flex-row w-full min-h-screen bg-[#2c0a63] text-white p-4">
+  <!-- Leaderboard (Left Panel) -->
+  <div class="w-full md:w-1/3 bg-[#3a0f7b] rounded-xl p-4 shadow mb-6 md:mb-0 md:mr-6">
+    <h2 class="text-2xl font-bold mb-4 text-center">Leaderboard</h2>
+    <ol class="space-y-3">
+      <li class="flex items-center justify-between bg-[#4c26a6] rounded-lg p-3">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">🥇</span>
+          <span class="font-semibold">Ana Torres</span>
+        </div>
+        <span class="bg-yellow-400 text-[#2c0a63] font-bold px-3 py-1 rounded-full">1200 pts</span>
+      </li>
+      <li class="flex items-center justify-between bg-[#4c26a6] rounded-lg p-3">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">🥈</span>
+          <span class="font-semibold">Luis Gómez</span>
+        </div>
+        <span class="bg-gray-300 text-[#2c0a63] font-bold px-3 py-1 rounded-full">1100 pts</span>
+      </li>
+      <li class="flex items-center justify-between bg-[#4c26a6] rounded-lg p-3">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">🥉</span>
+          <span class="font-semibold">María López</span>
+        </div>
+        <span class="bg-orange-400 text-[#2c0a63] font-bold px-3 py-1 rounded-full">1050 pts</span>
+      </li>
+      <li class="flex items-center justify-between bg-[#4c26a6] rounded-lg p-3">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">4</span>
+          <span class="font-semibold">Tú</span>
+        </div>
+        <span class="bg-white text-[#2c0a63] font-bold px-3 py-1 rounded-full">1000 pts</span>
+      </li>
+    </ol>
+  </div>
+
+  <!-- Right Panel -->
+  <div class="flex-1 flex flex-col gap-6">
+    <!-- User Points (Top Right) -->
+    <div class="bg-[#4c26a6] rounded-xl p-6 flex flex-col items-center shadow relative">
+      <span class="text-lg">Tus puntos</span>
+      <div class="flex items-center gap-2 mb-2">
+        <mat-icon class="text-yellow-400">star</mat-icon>
+        <span class="text-4xl font-bold">1000</span>
+        <span class="text-lg">pts</span>
+      </div>
+      <button mat-stroked-button class="mt-2 border border-white px-4 py-2 rounded-full" (click)="showModal = true">¿Cómo ganar puntos?</button>
+      <!-- Modal -->
+      <div *ngIf="showModal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+        <div class="bg-white text-[#2c0a63] rounded-xl p-8 w-80 shadow-lg flex flex-col items-center">
+          <h3 class="text-xl font-bold mb-2">¿Cómo ganar puntos?</h3>
+          <ul class="list-disc pl-5 text-left mb-4">
+            <li>Completa tareas en grupos</li>
+            <li>Apuesta en el simulador</li>
+            <li>Gana torneos</li>
+            <li>Participa en desafíos</li>
+          </ul>
+          <button mat-button class="bg-[#e63167] text-white px-4 py-2 rounded-full" (click)="showModal = false">Cerrar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Completed Challenges (Bottom Right) -->
+    <div class="bg-[#3a0f7b] rounded-xl p-6 shadow">
+      <h3 class="text-xl font-bold mb-4">Desafíos completados</h3>
+      <ul class="space-y-2">
+        <li class="flex items-center gap-2 bg-[#4c26a6] rounded-lg p-3">
+          <mat-icon class="text-green-400">check_circle</mat-icon>
+          Ganaste el torneo de prueba
+        </li>
+        <li class="flex items-center gap-2 bg-[#4c26a6] rounded-lg p-3">
+          <mat-icon class="text-green-400">check_circle</mat-icon>
+          Completaste 5 tareas grupales
+        </li>
+        <li class="flex items-center gap-2 bg-[#4c26a6] rounded-lg p-3">
+          <mat-icon class="text-green-400">check_circle</mat-icon>
+          Apostaste por un equipo ganador
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
