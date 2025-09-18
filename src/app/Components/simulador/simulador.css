@@ -1,0 +1,34 @@
+
+@import "tailwindcss";
+
+.mat-mdc-raised-button {
+	box-shadow: 0 4px 14px 0 rgba(0,0,0,0.15);
+}
+
+.animate-spin {
+	animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+	0% { transform: rotate(0deg); }
+	100% { transform: rotate(360deg); }
+}
+
+/* Responsive tweaks for grid */
+@media (max-width: 640px) {
+	.grid-cols-6, .grid-cols-4 {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+.mat-icon.text-yellow-400 {
+	color: #facc15 !important;
+}
+
+.mat-icon.text-4xl {
+	font-size: 2.25rem !important;
+}
+
+.mat-icon.text-5xl {
+	font-size: 3rem !important;
+}
