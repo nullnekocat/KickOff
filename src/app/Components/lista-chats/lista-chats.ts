@@ -1,5 +1,6 @@
-import { NgClass } from '@angular/common';
-import { Component } from '@angular/core';
+import { NgClass, NgFor, NgIf } from '@angular/common';
+import { Component, NgModule } from '@angular/core';
+import { FormsModule, NgModel } from '@angular/forms';
 
 interface Chat {
   id: number;
@@ -9,7 +10,8 @@ interface Chat {
 
 @Component({
   selector: 'app-lista-chats',
-  imports: [NgClass],
+  standalone: true,
+  imports: [NgClass, NgIf, NgFor, FormsModule],
   templateUrl: './lista-chats.html',
   styleUrl: './lista-chats.css'
 })
@@ -35,6 +37,42 @@ selectedTab: 'privados' | 'grupos' = 'privados';
 
   openChat(chat: Chat) {
     console.log('Abrir chat:', chat);
-    // Aquí luego conectamos con ChatWindowComponent
+  }
+
+  //modal 
+  showModal = false;
+  filtroContactos = '';
+  contactos: string[] = ['Juan Pérez', 'María López', 'Carlos Sánchez', 'Ana Torres', 'Luis Gómez'];
+  seleccionados: string[] = [];
+
+  get contactosFiltrados() {
+    return this.contactos.filter(c => 
+      c.toLowerCase().includes(this.filtroContactos.toLowerCase())
+    );
+  }
+
+  crearGrupo() {
+    this.showModal = true;
+  }
+
+  closeModal() {
+    this.showModal = false;
+    this.seleccionados = [];
+    this.filtroContactos = '';
+  }
+
+  toggleSeleccion(contacto: string) {
+    if (this.seleccionados.includes(contacto)) {
+      this.seleccionados = this.seleccionados.filter(c => c !== contacto);
+    } else {
+      this.seleccionados.push(contacto);
+    }
+  }
+
+  crearGrupoConfirmado() {
+    console.log("Grupo creado con:", this.seleccionados);
+    this.showModal = false;
+    this.seleccionados = [];
+    this.filtroContactos = '';
   }
 }

@@ -1,7 +1,31 @@
-<div class="flex h-full">
-  <!--FALTA modal para llamada y videollamada-->
-  <app-lista-chats class="w-72"></app-lista-chats>
+<div class="flex h-screen relative">
+  <button 
+    class="absolute top-1/2 left-2 z-50 bg-white text-white p-2 rounded-full md:hidden"
+    (click)="toggleLeft()">
+    <i class="fas fa-chevron-right"></i>
+  </button>
+
+  <div [ngClass]="{'translate-x-0': leftOpen, '-translate-x-full': !leftOpen}"
+       class="fixed md:static top-0 left-0 h-full w-64 bg-[#37079645] border-r border-[#37079645]  
+              flex-shrink-0 transform transition-transform duration-300 md:translate-x-0 z-40">
+    <app-lista-chats></app-lista-chats>
+  </div>
+
   <div class="flex-1 flex flex-col">
-    <app-chat-abierto class="w-full h-full"></app-chat-abierto>
+    <app-chat-abierto></app-chat-abierto>
+  </div>
+
+  <button 
+    class="absolute top-1/2 right-2 z-50 bg-white text-white p-2 rounded-full lg:hidden"
+    (click)="toggleRight()">
+    <i class="fas fa-chevron-left"></i>
+  </button>
+
+  <div [ngClass]="{'translate-x-0': rightOpen, 'translate-x-full': !rightOpen}"
+       class="fixed lg:static p-4 top-0 right-0 h-full w-72 bg-[#21045c6c]
+              flex-shrink-0 flex-col overflow-y-auto transform transition-transform duration-300 lg:translate-x-0 z-40">
+    <app-integrantes class="p-2"></app-integrantes>
+    <app-tareas class="p-2"></app-tareas>
+    <app-recompensas class="p-2"></app-recompensas>
   </div>
 </div>

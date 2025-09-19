@@ -1,33 +1,33 @@
-<div class="flex flex-col h-full w-full pl-5 bg-[#2c0a63]">
+<div class="flex flex-col max-h-svh h-screen w-full"> <!-- altura completa y ancho completo -->
 
-  <!-- info del chat -->
-  <div class="flex justify-between items-center p-4 bg-[#4c26a6] text-white">
+  <div class="flex justify-between items-center p-4 bg-[#370796] text-white flex-shrink-0 w-full">
     <div class="flex items-center gap-3">
-      <div class="w-10 h-10 rounded-full bg-[#e63167] flex items-center justify-center font-bold">JP</div>
+      <div class="w-14 h-14 rounded-full bg-[#e63167] flex items-center justify-center font-bold text-lg">EPX</div>
       <div class="flex flex-col">
-        <h2 class="text-sm font-semibold">Juan Pérez</h2>
-        <span class="text-xs text-gray-300">En línea</span>
+        <h2 class="text-sm sm:text-base font-semibold">Equipo Proyecto X</h2>
+        <span class="text-xs sm:text-sm text-gray-300">En línea</span>
       </div>
     </div>
     <div class="flex gap-2">
-      <button class="text-gray-300 hover:text-white"><mat-icon>phone</mat-icon></button>
-      <button class="text-gray-300 hover:text-white"><mat-icon>videocam</mat-icon></button>
+      <button class="text-gray-300 hover:text-white" (click)="abrirLlamadaVozModal()"><mat-icon>phone</mat-icon></button>
+      <button class="text-gray-300 hover:text-white" (click)="abrirLlamada()"><mat-icon>videocam</mat-icon></button>
       <button class="text-gray-300 hover:text-white"><mat-icon>lock</mat-icon></button>
     </div>
   </div>
 
   <!-- mensajes -->
-  <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-2 bg-[#3a0f7b]">
+  <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-2 bg-[#37079645] w-full">
     <div *ngFor="let msg of messages" 
-         [ngClass]="msg.sender === 'me' ? 'self-end bg-[#6931e6]' : 'self-start bg-[#4b1fac]'"
+         [ngClass]="msg.sender === 'me' ? 'self-end bg-[#43179cb4]' : 'self-start bg-[#3d0ba29f]'"
          class="text-white p-3 rounded-xl max-w-[75%]">
+      <div class="font-semibold text-sm mb-1">{{ msg.senderName }}</div>
       {{ msg.text }}
       <div class="text-xs text-gray-200 mt-1 text-right">{{ msg.time }}</div>
     </div>
   </div>
 
-  <!-- barra escritura -->
-  <div class="flex items-center p-3 bg-[#3a0f7b] gap-2">
+  <!-- barra baja -->
+  <div class="flex items-center p-3 bg-[#370796] gap-2 flex-shrink-0 w-full">
     <input type="text" [(ngModel)]="inputMessage" placeholder="Escribe un mensaje..." 
            class="flex-1 rounded-full px-4 py-2 bg-[#2c0a63] text-white focus:outline-none"
            (keydown.enter)="sendMessage()">
@@ -43,4 +43,70 @@
     </button>
   </div>
 
+</div>
+
+
+<!-- modal llamada de voz -->
+<div *ngIf="abrirLlamadaVoz"
+     class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+  <div class="bg-white p-6 rounded-2xl shadow-lg w-[24rem] max-w-full text-center relative">
+    
+    <div class="flex flex-col items-center mb-6">
+      <div class="w-24 h-24 rounded-full bg-[#e63167] flex items-center justify-center text-white text-3xl font-bold">
+        JP
+      </div>
+      <h2 class="text-lg font-semibold mt-4 text-[#330685]">Juan Pérez</h2>
+      <p class="text-sm text-gray-500">Llamada entrante...</p>
+    </div>
+
+    <div class="flex justify-center gap-6">
+      <button class="bg-red-500 hover:bg-red-600 text-white py-3 px-6 rounded-full flex items-center gap-2"
+              (click)="cerrarLlamadaVoz()">
+        <mat-icon>call_end</mat-icon>
+        Rechazar
+      </button>
+      <button class="bg-green-500 hover:bg-green-600 text-white py-3 px-6 rounded-full flex items-center gap-2"
+              (click)="iniciarLlamadaVoz()">
+        <mat-icon>call</mat-icon>
+        Aceptar
+      </button>
+    </div>
+
+    <button class="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+            (click)="cerrarLlamadaVoz()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+</div>
+
+<!-- modal videollamada -->
+<div *ngIf="abrirVideollamada"
+  class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+  <div class="bg-white p-6 rounded-2xl shadow-lg w-[32rem] max-w-full text-center relative">
+    
+    <h2 class="text-lg font-semibold mb-4 text-[#330685]">Videollamada</h2>
+
+    <div class="bg-black rounded-xl h-64 flex items-center justify-center mb-6">
+      <p class="text-white">Vista previa de la llamada</p>
+    </div>
+
+    <div class="flex justify-center gap-6">
+      <button class="bg-red-500 hover:bg-red-600 text-white py-2 px-6 rounded-full flex items-center gap-2"
+              (click)="cerrarLlamada()">
+        <mat-icon>call_end</mat-icon>
+        Rechazar
+      </button>
+
+      <button class="bg-green-500 hover:bg-green-600 text-white py-2 px-6 rounded-full flex items-center gap-2"
+              (click)="iniciarLlamada()">
+        <mat-icon>call</mat-icon>
+        Aceptar
+      </button>
+    </div>
+
+    <button class="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+            (click)="cerrarLlamada()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
 </div>
