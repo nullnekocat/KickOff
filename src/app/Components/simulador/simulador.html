@@ -1,11 +1,11 @@
 
 
-<div class="flex flex-col items-center w-full min-h-screen bg-[#2c0a63] text-white p-4 relative">
+<div class="flex flex-col items-center justify-center w-full h-screen min-h-screen bg-[#2c0a63] text-white p-2 md:p-6 relative overflow-auto">
 	<h1 class="text-4xl font-bold mb-4 text-center">Simulador Mundial 2026</h1>
 
 	<!-- Step 1: Team Selection -->
 	<ng-container *ngIf="!loading && !showResults">
-		<div class="w-full max-w-3xl mb-6">
+		<div class="w-full flex flex-col items-center justify-center mb-6">
 			<h2 class="text-2xl font-semibold mb-2">Selecciona tu equipo para apostar</h2>
 			<div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
 				<div
@@ -39,7 +39,7 @@
 
 	<!-- Step 3: Results -->
 	<ng-container *ngIf="showResults && !loading">
-		<div class="w-full max-w-4xl mb-6">
+		<div class="w-full flex flex-col items-center justify-center mb-6">
 			<h2 class="text-2xl font-semibold mb-2">Resultados del torneo</h2>
 			<div class="bg-[#3a0f7b] rounded-lg p-4 flex flex-col md:flex-row gap-4">
 				<!-- Group Stage -->
@@ -109,7 +109,7 @@
 			</div>
 		</div>
 		<!-- Points Earned -->
-		<div class="w-full max-w-md flex flex-col items-center bg-[#4c26a6] rounded-xl p-4 shadow mb-4">
+		<div class="w-full flex flex-col items-center bg-[#4c26a6] rounded-xl p-4 shadow mb-4">
 			<span class="text-xl font-semibold mb-2">Puntos ganados</span>
 			<div class="flex items-center gap-2">
 				<mat-icon class="text-yellow-400">star</mat-icon>
