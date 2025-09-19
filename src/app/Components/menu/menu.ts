@@ -8,7 +8,8 @@ import { MatBadgeModule } from '@angular/material/badge';
 @Component({
   selector: 'app-menu',
   standalone: true,  // si es standalone
-  imports: [CommonModule, RouterModule, MatIconModule, MatButtonModule, MatBadgeModule],
+  imports: [CommonModule, RouterModule, MatIconModule, 
+  MatButtonModule, MatBadgeModule],
   templateUrl: './menu.html',
   styleUrls: ['./menu.css']
 })
