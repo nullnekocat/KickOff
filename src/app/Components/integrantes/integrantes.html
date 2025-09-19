@@ -1,0 +1,11 @@
+<div class="bg-white shadow-md rounded-lg p-4 w-full max-w-md mx-auto">
+  <h2 class="text-xl font-bold text-[#330685] mb-4">Integrantes del chat</h2>
+
+  <ul class="divide-y divide-gray-200">
+    <li *ngFor="let integrante of integrantes" class="py-3">
+      <p class="text-lg font-semibold text-gray-800">{{ integrante.nombre }}</p>
+      <p class="text-sm text-gray-500">{{ integrante.correo }}</p>
+    </li>
+  </ul>
+</div>
+

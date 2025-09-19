@@ -1,50 +1,15 @@
-<div class="flex">
-   <!-- Menú lateral -->
-    <div class="menu-container fixed md:relative h-full bg-[#370796] mobile-hidden" id="menuContainer">
-        <app-menu></app-menu>
-    </div>
+<div class="flex h-screen overflow-hidden">
+  <div *ngIf="menuAbierto && isMobile"
+       class="fixed inset-0 bg-black/40 z-40 md:hidden"
+       (click)="toggleMenu()">
+  </div>
 
-  <!-- Contenedor donde Angular inyecta la página -->
-    <main class="p-4">
-        <router-outlet></router-outlet>
-    </main>
+  <div class="menu-container fixed md:relative h-full bg-[#370796] z-50 md:z-0"
+       [ngClass]="{ 'mobile-hidden': !menuAbierto && isMobile }">
+    <app-menu></app-menu>
+  </div>
+
+  <main class="flex-1 p-0 overflow-hidden">
+    <router-outlet></router-outlet>
+  </main>
 </div>
-
-
-<script>
-        let menuAbierto = false;
-        const menuContainer = document.getElementById('menuContainer');
-        const overlayBackdrop = document.getElementById('overlayBackdrop');
-        const menuButton = document.getElementById('menuButton');
-
-        function toggleMenu() {
-        menuAbierto = !menuAbierto;
-
-        if (menuAbierto) {
-            menuContainer.classList.remove('mobile-hidden');
-            overlayBackdrop.classList.add('active');
-            menuButton.textContent = 'Cerrar menú';
-        } else {
-            menuContainer.classList.add('mobile-hidden');
-            overlayBackdrop.classList.remove('active');
-            menuButton.textContent = 'Abrir menú';
-        }
-        }
-
-        menuButton.addEventListener('click', toggleMenu);
-        overlayBackdrop.addEventListener('click', toggleMenu);
-
-    window.addEventListener('resize', function() {
-        if (window.innerWidth >= 768) {
-            menuContainer.classList.remove('mobile-hidden');
-            overlayBackdrop.classList.remove('active');
-            menuAbierto = true;
-            menuButton.textContent = 'Cerrar menú';
-        } else if (!menuAbierto) {
-            menuContainer.classList.add('mobile-hidden');
-            menuButton.textContent = 'Abrir menú';
-        }
-    });
-</script>
-
-

@@ -1,31 +1,40 @@
-import { Component, signal, HostListener } from '@angular/core';
+import { Component, signal, HostListener, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { Menu } from './Components/menu/menu';
-import { NgClass } from '@angular/common';
+import { NgClass, NgIf } from '@angular/common';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, Menu, NgClass],
+  standalone: true,
+  imports: [RouterOutlet, Menu, NgClass, NgIf],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
-export class App {
+export class App implements OnInit {
   protected readonly title = signal('KickOff');
   menuAbierto = false;
+  isMobile = false;
+
+  ngOnInit() {
+    this.checkScreenSize();
+  }
 
   toggleMenu() {
     this.menuAbierto = !this.menuAbierto;
   }
 
-  // Ajustar automáticamente al redimensionar ventana
-  @HostListener('window:resize', ['$event'])
-  onResize(event: any) {
-    if (event.target.innerWidth >= 768) {
-      this.menuAbierto = true;
-    } else {
-      this.menuAbierto = false;
-    }
+  @HostListener('window:resize')
+  onResize() {
+    this.checkScreenSize();
   }
 
-}
+  private checkScreenSize() {
+    this.isMobile = window.innerWidth < 768;
 
+    if (!this.isMobile) {
+      this.menuAbierto = true; 
+    } else {
+      this.menuAbierto = false; 
+    }
+  }
+}

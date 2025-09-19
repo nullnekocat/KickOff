@@ -1,23 +1,28 @@
-<div class="flex flex-col h-full w-full bg-[#2c0a63] text-white">
+<div class="flex flex-col h-full w-full bg-[#1f0848] text-white">
   
   <!-- Tabs Privados / Grupos -->
-  <div class="flex p-2 bg-[#4c26a6]">
+  <div class="flex pt-6 p-4 pb-6 bg-[#370796]">
     <button 
       class="flex-1 py-2 mx-1 rounded-md transition"
-      [ngClass]="selectedTab === 'privados' ? 'bg-[#6931e6] hover:bg-[#5a28c8]' : 'bg-[#2c0a63] hover:bg-[#3a0f7b]'"
+      [ngClass]="selectedTab === 'privados' ? 'bg-[#20035b98] hover:bg-[#37147c]' : 'bg-[#2c0a63] hover:bg-[#3a0f7b]'"
       (click)="selectedTab = 'privados'">
       Privados
     </button>
     <button 
       class="flex-1 py-2 mx-1 rounded-md transition"
-      [ngClass]="selectedTab === 'grupos' ? 'bg-[#6931e6] hover:bg-[#5a28c8]' : 'bg-[#2c0a63] hover:bg-[#3a0f7b]'"
+      [ngClass]="selectedTab === 'grupos' ? 'bg-[#20035b98] hover:bg-[#37147c]' : 'bg-[#2c0a63] hover:bg-[#3a0f7b]'"
       (click)="selectedTab = 'grupos'">
       Grupos
+    </button>
+    <button 
+      class="ml-2 px-3 rounded-md bg-[#2c0a63] hover:bg-[#3a0f7b] transition"
+      (click)="crearGrupo()">
+      +
     </button>
   </div>
 
   <!-- Barra de búsqueda simple -->
-  <div class="p-2 bg-[#3a0f7b]">
+  <div class="p-2 bg-[#3d0ba29f]">
     <input type="text" placeholder="Buscar..." 
            class="w-full py-2 px-4 rounded-full bg-[#2c0a63] text-white placeholder-gray-400 focus:outline-none" />
   </div>
@@ -25,7 +30,7 @@
   <!-- Lista de chats -->
   <div class="flex-1 overflow-y-auto p-2">
     <ul class="space-y-2">
-      <li class="p-3 rounded-lg bg-[#3d147e] hover:bg-[#4b1fac] cursor-pointer transition">
+      <li class="p-3 rounded-lg bg-[#37079645] hover:bg-[#4b1fac] cursor-pointer transition">
         <div class="flex items-center justify-between">
           <span class="font-semibold">Juan Pérez</span>
           <span class="text-xs text-gray-300">10:45 AM</span>
@@ -33,7 +38,7 @@
         <p class="text-sm text-gray-300 truncate">¡Hola! ¿Cómo estás?</p>
       </li>
 
-      <li class="p-3 rounded-lg bg-[#3d147e] hover:bg-[#4b1fac] cursor-pointer transition">
+      <li class="p-3 rounded-lg bg-[#37079645] hover:bg-[#4b1fac] cursor-pointer transition">
         <div class="flex items-center justify-between">
           <span class="font-semibold">María López</span>
           <span class="text-xs text-gray-300">Ayer</span>
@@ -41,22 +46,50 @@
         <p class="text-sm text-gray-300 truncate">Nos vemos mañana en la oficina</p>
       </li>
 
-      <li class="p-3 rounded-lg bg-[#3d147e] hover:bg-[#4b1fac] cursor-pointer transition">
+      <li class="p-3 rounded-lg bg-[#37079645] hover:bg-[#4b1fac] cursor-pointer transition">
         <div class="flex items-center justify-between">
           <span class="font-semibold">Equipo Proyecto X</span>
           <span class="text-xs text-gray-300">Lun</span>
         </div>
         <p class="text-sm text-gray-300 truncate">Carlos: He subido los archivos al servidor</p>
       </li>
-
-      <li class="p-3 rounded-lg bg-[#3d147e] hover:bg-[#4b1fac] cursor-pointer transition">
-        <div class="flex items-center justify-between">
-          <span class="font-semibold">Familia</span>
-          <span class="text-xs text-gray-300">12 Sep</span>
-        </div>
-        <p class="text-sm text-gray-300 truncate">Mamá: ¿Cuándo vienes a visitarnos?</p>
-      </li>
     </ul>
   </div>
+</div>
 
+<!-- modal para crear grupo nuevo -->
+<div *ngIf="showModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+  <div class="bg-[#2c0a63] p-6 rounded-2xl shadow-lg w-96 text-white">
+    <h2 class="text-xl font-semibold mb-4">Crear nuevo grupo</h2>
+
+    <input type="text" placeholder="Nombre del grupo" 
+           class="w-full mb-4 py-2 px-3 rounded-md bg-[#3a0f7b] text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#6931e6]" />
+
+    <input type="text" [(ngModel)]="filtroContactos" placeholder="Buscar contactos..." 
+           class="w-full mb-3 py-2 px-3 rounded-md bg-[#3a0f7b] text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#6931e6]" />
+
+    <div class="max-h-40 overflow-y-auto mb-4">
+      <ul class="space-y-2">
+        <li *ngFor="let contacto of contactosFiltrados" 
+            (click)="toggleSeleccion(contacto)"
+            class="flex items-center justify-between p-2 rounded-md cursor-pointer transition"
+            [ngClass]="seleccionados.includes(contacto) ? 'bg-[#5a28c8]' : 'bg-[#3d147e] hover:bg-[#4b1fac]'">
+          
+          <span>{{ contacto }}</span>
+          <span *ngIf="seleccionados.includes(contacto)" class="text-sm text-green-300">✔</span>
+        </li>
+      </ul>
+    </div>
+
+    <div class="flex justify-end gap-3">
+      <button (click)="closeModal()" 
+              class="px-4 py-2 rounded-md bg-gray-500 hover:bg-gray-600 transition">
+        Cancelar
+      </button>
+      <button (click)="crearGrupoConfirmado()" 
+              class="px-4 py-2 rounded-md bg-[#6931e6] hover:bg-[#5a28c8] transition">
+        Crear
+      </button>
+    </div>
+  </div>
 </div>

@@ -1,11 +1,9 @@
 <header [class.translate-x-0]="isMenuOpen"
         [class.-translate-x-full]="!isMenuOpen"
-        class="flex flex-col justify-between h-screen w-44 md:w-52 px-4 py-6 bg-[#330685]
-               text-white fixed top-0 left-0 transition-transform duration-300 transform md:translate-x-0 md:static z-50">
-
-  <!-- Parte superior: Logo y navegación -->
+        class="flex flex-col justify-between h-screen w-44 md:w-52 bg-[#330685]
+         text-white fixed top-0 left-0 transition-transform duration-300 transform md:translate-x-0 md:static z-50">
   <div>
-    <div class="flex items-center justify-center mb-6">
+    <div class="flex items-center justify-center mb-6 p-7">
       <img src="https://i.ibb.co/nsj1v77z/Logo-Blanco.png" alt="Logo Mundial" class="w-18 h-18"/>
       <span class="kura-text">KickOff</span>
     </div>
@@ -67,7 +65,7 @@
               (click)="abrirModal = false">
         Cancelar
       </button>
-      <button class="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-lg"
+      <button class="bg-red-500 hover:bg-red-550 text-white hovertext py-2 px-4 rounded-lg"
               (click)="cerrarSesion()">
         Cerrar sesión
       </button>
