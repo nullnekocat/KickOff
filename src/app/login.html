@@ -1,0 +1,20 @@
+<div class="min-h-screen flex items-center justify-center bg-[#2c0a63] p-2">
+	<div class="bg-[#3a0f7b] rounded-xl shadow-lg p-8 w-full max-w-sm flex flex-col items-center">
+		<h1 class="text-3xl font-bold mb-6 text-white">Iniciar sesión</h1>
+		<form class="w-full flex flex-col gap-4">
+			<div>
+				<label for="nickname" class="block text-white mb-1">Usuario</label>
+				<input id="nickname" name="nickname" type="text" class="w-full px-4 py-2 rounded-lg bg-[#2c0a63] text-white focus:outline-none" placeholder="Tu apodo" required>
+			</div>
+			<div>
+				<label for="password" class="block text-white mb-1">Contraseña</label>
+				<input id="password" name="password" type="password" class="w-full px-4 py-2 rounded-lg bg-[#2c0a63] text-white focus:outline-none" placeholder="Contraseña" required>
+			</div>
+			<button type="button" [routerLink]="['/home']" class="w-full bg-[#e63167] hover:bg-[#c41c4d] text-white font-bold py-2 rounded-lg transition">Entrar</button>
+		</form>
+		<div class="mt-4 text-center">
+			<span class="text-white">¿No tienes cuenta?</span>
+			<a [routerLink]="['/signin']" class="text-[#e63167] hover:underline ml-1">Regístrate</a>
+		</div>
+	</div>
+</div>
