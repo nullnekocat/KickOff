@@ -31,10 +31,12 @@
 
 	<!-- Step 2: Loading Overlay -->
 	<ng-container *ngIf="loading">
-		<div class="absolute inset-0 flex flex-col items-center justify-center bg-[#2c0a63] bg-opacity-95 z-50">
-			<mat-icon class="animate-spin text-5xl mb-4">hourglass_top</mat-icon>
-			<span class="text-2xl font-semibold">Simulando torneo...</span>
-		</div>
+				<div class="absolute inset-0 flex flex-col items-center justify-center bg-[#2c0a63] bg-opacity-95 z-50">
+						<div class="w-20 h-20 mb-4 flex items-center justify-center">
+							<span class="block w-16 h-16 border-8 border-[#e63167] border-t-transparent rounded-full animate-spin"></span>
+						</div>
+						<span class="text-2xl font-semibold">Simulando torneo...</span>
+				</div>
 	</ng-container>
 
 	<!-- Step 3: Results -->
@@ -48,24 +50,24 @@
 					<div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
 						<div class="bg-[#4c26a6] rounded-lg p-2">
 							<div class="font-semibold mb-1">Grupo A</div>
-							<div class="text-sm">🇦🇷 Argentina 2 - 1 🇯🇵 Japón</div>
-							<div class="text-sm">🇮🇹 Italia 1 - 1 🇲🇽 México</div>
-							<div class="text-sm">🇦🇷 Argentina 3 - 0 🇮🇹 Italia</div>
-							<div class="text-sm">🇲🇽 México 2 - 2 🇯🇵 Japón</div>
+							<div class="text-sm">🇦🇷 2 - 1 🇯🇵</div>
+							<div class="text-sm">🇮🇹 1 - 1 🇲🇽</div>
+							<div class="text-sm">🇦🇷 3 - 0 🇮🇹</div>
+							<div class="text-sm">🇲🇽 2 - 2 🇯🇵</div>
 						</div>
 						<div class="bg-[#4c26a6] rounded-lg p-2">
 							<div class="font-semibold mb-1">Grupo B</div>
-							<div class="text-sm">🇧🇷 Brasil 2 - 0 🇪🇸 España</div>
-							<div class="text-sm">🇺🇸 EEUU 1 - 2 🇳🇱 Países Bajos</div>
-							<div class="text-sm">🇧🇷 Brasil 1 - 1 🇳🇱 Países Bajos</div>
-							<div class="text-sm">🇪🇸 España 2 - 1 🇺🇸 EEUU</div>
+							<div class="text-sm">🇧🇷 2 - 0 🇪🇸</div>
+							<div class="text-sm">🇺🇸 1 - 2 🇳🇱</div>
+							<div class="text-sm">🇧🇷 1 - 1 🇳🇱</div>
+							<div class="text-sm">🇪🇸 2 - 1 🇺🇸</div>
 						</div>
 						<div class="bg-[#4c26a6] rounded-lg p-2">
 							<div class="font-semibold mb-1">Grupo C</div>
-							<div class="text-sm">🇫🇷 Francia 2 - 2 🇩🇪 Alemania</div>
-							<div class="text-sm">🇬🇧 Inglaterra 1 - 0 🇵🇹 Portugal</div>
-							<div class="text-sm">🇫🇷 Francia 1 - 1 🇵🇹 Portugal</div>
-							<div class="text-sm">🇩🇪 Alemania 2 - 1 🇬🇧 Inglaterra</div>
+							<div class="text-sm">🇫🇷 2 - 2 🇩🇪</div>
+							<div class="text-sm">🇬🇧 1 - 0 🇵🇹</div>
+							<div class="text-sm">🇫🇷 1 - 1 🇵🇹</div>
+							<div class="text-sm">🇩🇪 2 - 1 🇬🇧</div>
 						</div>
 					</div>
 				</div>
