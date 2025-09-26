@@ -5,28 +5,34 @@ const app = express();
 
 const PORT = 3000;
 
-
-//enable CORS
+// Enable CORS
 app.use(cors());
-//enable json parser
+// Enable JSON parser
 app.use(express.json());
 
-// add route the customer api
-const customerRoutes = require('./routes/customers');
-//use the route
-app.use('/api/customers', customerRoutes);
+// Importar rutas de usuarios
+const userRoutes = require('./routes/users');
+app.use('/api/users', userRoutes);
 
+// Ruta raíz
 app.get('/', (req, res) => {
-    res.send('Welcome to Customers API');
-})
+    res.send('Welcome to Users API 🚀');
+});
+
+// Conexión a MongoDB
+main().catch(err => console.error(err));
+async function main() {
+    try {
+        mongoose.set('strictQuery', true);
+        const connectionString = "mongodb+srv://andrew:pwj_evf*cam9vnv*XVW@cluster0.yzomxht.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+        await mongoose.connect(connectionString);
+        console.log("✅ Connected to MongoDB Atlas");
+    } catch (error) {
+        console.error("❌ Error connecting to MongoDB:", error);
+    }
+}
+
+// Arrancar servidor
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });
-main().catch(err => console.log(error));
-async function main(){
-    //prepare connection string
-    const connectionString = "mongodb+srv://andrew:pwj_evf*cam9vnv*XVW@cluster0.yzomxht.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
-    await mongoose.connect(connectionString);
-    mongoose.set('strictQuery', true);
-
-}

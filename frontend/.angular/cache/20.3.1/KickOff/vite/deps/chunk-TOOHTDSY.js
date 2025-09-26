@@ -3,7 +3,7 @@ import {
 } from "./chunk-FL3TIFQ7.js";
 import {
   isPlatformBrowser
-} from "./chunk-L2WYP7F3.js";
+} from "./chunk-VO7VAGYW.js";
 import {
   APP_ID,
   ApplicationRef,
@@ -2961,4 +2961,4 @@ export {
   AriaDescriber,
   MatCommonModule
 };
-//# sourceMappingURL=chunk-F3RJAKGT.js.map
+//# sourceMappingURL=chunk-TOOHTDSY.js.map
