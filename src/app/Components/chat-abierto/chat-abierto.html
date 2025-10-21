@@ -1,6 +1,6 @@
-<div class="flex flex-col max-h-svh h-screen w-full"> <!-- altura completa y ancho completo -->
+<div class="flex flex-col max-h-svh h-screen w-full bg-[#2C2336]"> <!-- altura completa y ancho completo -->
 
-  <div class="flex justify-between items-center p-4 bg-[#370796] text-white flex-shrink-0 w-full">
+  <div class="flex justify-between items-center p-4 bg-[#1e1725] text-white flex-shrink-0 w-full">
     <div class="flex items-center gap-3">
       <div class="w-14 h-14 rounded-full bg-[#e63167] flex items-center justify-center font-bold text-lg">EPX</div>
       <div class="flex flex-col">
@@ -8,17 +8,17 @@
         <span class="text-xs sm:text-sm text-gray-300">En línea</span>
       </div>
     </div>
-    <div class="flex gap-2">
+    <div class="flex gap-2"> 
       <button class="text-gray-300 hover:text-white" (click)="abrirLlamadaVozModal()"><mat-icon>phone</mat-icon></button>
       <button class="text-gray-300 hover:text-white" (click)="abrirLlamada()"><mat-icon>videocam</mat-icon></button>
       <button class="text-gray-300 hover:text-white"><mat-icon>lock</mat-icon></button>
     </div>
   </div>
-
+ 
   <!-- mensajes -->
-  <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-2 bg-[#37079645] w-full">
+  <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-2 bg-[#2C2336] w-full">
     <div *ngFor="let msg of messages" 
-         [ngClass]="msg.sender === 'me' ? 'self-end bg-[#43179cb4]' : 'self-start bg-[#3d0ba29f]'"
+         [ngClass]="msg.sender === 'me' ? 'self-end bg-[#3d2563]' : 'self-start bg-[#5b3f87]'"
          class="text-white p-3 rounded-xl max-w-[75%]">
       <div class="font-semibold text-sm mb-1">{{ msg.senderName }}</div>
       {{ msg.text }}
@@ -27,17 +27,17 @@
   </div>
 
   <!-- barra baja -->
-  <div class="flex items-center p-3 bg-[#370796] gap-2 flex-shrink-0 w-full">
+  <div class="flex items-center p-3 bg-[#1e1725] gap-2 flex-shrink-0 w-full">
     <input type="text" [(ngModel)]="inputMessage" placeholder="Escribe un mensaje..." 
-           class="flex-1 rounded-full px-4 py-2 bg-[#2c0a63] text-white focus:outline-none"
+           class="flex-1 rounded-full px-4 py-2 bg-[#59496b] text-white focus:outline-none"
            (keydown.enter)="sendMessage()">
 
-    <label for="fileInput" class="bg-[#6931e6] w-10 h-10 rounded-full flex items-center justify-center text-white cursor-pointer hover:bg-[#5a28c8]">
+    <label for="fileInput" class="bg-[#501F9D] w-10 h-10 rounded-full flex items-center justify-center text-white cursor-pointer hover:bg-[#5a28c8]">
       <mat-icon>attach_file</mat-icon>
     </label>
     <input type="file" id="fileInput" class="hidden" (change)="sendFile($event)">
 
-    <button class="bg-[#6931e6] w-10 h-10 rounded-full flex items-center justify-center text-white hover:bg-[#5a28c8]" 
+    <button class="bg-[#501F9D] w-10 h-10 rounded-full flex items-center justify-center text-white hover:bg-[#5a28c8]" 
             (click)="sendMessage()">
       <mat-icon>send</mat-icon>
     </button>
