@@ -1,4 +1,11 @@
 
 button:hover{
-    color: rgb(224, 11, 96);
+    color: rgb(146,125,237);
+}
+
+header {
+  z-index: 50;
+}
+.modal {
+  z-index: 9999; 
 }
