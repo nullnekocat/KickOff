@@ -1,15 +1,32 @@
 <div class="flex h-screen overflow-hidden">
-  <div *ngIf="menuAbierto && isMobile"
+  <div *ngIf="menuAbierto && isMobile && showMenu"
        class="fixed inset-0 bg-black/40 z-40 md:hidden"
-       (click)="toggleMenu()">
-  </div>
+       (click)="toggleMenu()"></div>
 
-  <div class="menu-container fixed md:relative h-full bg-[#370796] z-50 md:z-0"
+  <div *ngIf="showMenu"
+       class="menu-container fixed md:relative h-full bg-[#32068572] z-50 md:z-0"
        [ngClass]="{ 'mobile-hidden': !menuAbierto && isMobile }">
-    <app-menu></app-menu>
+    <app-menu (abrirModalEvent)="abrirModal = true"></app-menu> <!-- 🔹 Aquí -->
   </div>
 
   <main class="flex-1 p-0 overflow-hidden">
     <router-outlet></router-outlet>
   </main>
+
+  <!-- Modal global -->
+  <div *ngIf="abrirModal" class="modal-overlay">
+    <div class="modal-content">
+      <h2 class="text-lg font-semibold mb-4">¿Quieres cerrar sesión?</h2>
+      <div class="flex justify-center gap-4">
+        <button class="bg-gray-300 hover:bg-gray-400 py-2 px-4 rounded-lg"
+                (click)="abrirModal = false">
+          Cancelar
+        </button>
+        <button class="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-lg"
+                (click)="cerrarSesion()">
+          Cerrar sesión
+        </button>
+      </div>
+    </div>
+  </div>
 </div>

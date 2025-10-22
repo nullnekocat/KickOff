@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common'; // <<< IMPORTANTE
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatBadgeModule } from '@angular/material/badge';
+import { Output, EventEmitter } from '@angular/core';
 
 @Component({
   selector: 'app-menu',
@@ -15,14 +16,22 @@ import { MatBadgeModule } from '@angular/material/badge';
 })
 export class Menu {
   isMenuOpen = false;
-  abrirModal: boolean = false;
   logoPath = 'assets/Logo_Blanco.png';
+
+  @Output() abrirModalEvent = new EventEmitter<void>();
 
   constructor(private router: Router) {}
 
-  cerrarSesion() {
-    localStorage.removeItem('token');
-    this.router.navigate(['/login']);
-    this.abrirModal = false;
+  toggleMenu() {
+    this.isMenuOpen = !this.isMenuOpen;
   }
+
+  closeMenu() {
+    this.isMenuOpen = false;
+  }
+
+  onAbrirModal() {
+    this.abrirModalEvent.emit(); // 🔹 Emite al padre
+  }
+  
 }

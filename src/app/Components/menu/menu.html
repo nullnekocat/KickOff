@@ -1,6 +1,17 @@
+<!-- Botón Hamburguesa - Solo visible en móviles -->
+<button (click)="toggleMenu()" 
+        class="md:hidden fixed top-4 left-4 z-50 p-2 bg-[#1e1725] text-white rounded-lg">
+  <mat-icon>menu</mat-icon>
+</button>
+
+<!-- Overlay para cerrar menú al hacer click fuera - Solo en móviles -->
+<div *ngIf="isMenuOpen" 
+     (click)="closeMenu()"
+     class="md:hidden fixed inset-0 bg-black bg-opacity-50 z-40"></div>
+     
 <header [class.translate-x-0]="isMenuOpen"
         [class.-translate-x-full]="!isMenuOpen"
-        class="flex flex-col justify-between h-screen w-44 md:w-52 bg-[#330685]
+        class="flex flex-col justify-between h-screen w-44 md:w-52 bg-[#1e1725]
          text-white fixed top-0 left-0 transition-transform duration-300 transform md:translate-x-0 md:static z-50">
   <div>
     <div class="flex items-center justify-center mb-6 p-7">
@@ -35,37 +46,12 @@
     </nav>
   </div>
 
-  <!-- Parte inferior: Cuenta -->
-  <div class="flex flex-col gap-2">
-    <button mat-button
-            class="flex items-center gap-3 px-6 py-5 rounded-lg hover:bg-[#4b0da8] transition"
-            (click)="abrirModal = true">
-      <mat-icon>person</mat-icon>
-      <span class="hidden md:inline">Cuenta</span>
-    </button>
-  </div>
-</header>
-
-<!-- Botón hamburguesa solo en móvil -->
-<button class="md:hidden fixed top-4 left-4 z-50 bg-[#32068572] text-white p-2 rounded-lg shadow-md"
-        (click)="isMenuOpen = !isMenuOpen">
-  <mat-icon>menu</mat-icon>
+ <button mat-button
+        class="flex items-center gap-3 px-6 py-5 rounded-lg hover:bg-[#4b0da8] transition"
+        (click)="onAbrirModal()">
+  <mat-icon>person</mat-icon>
+  <span class="hidden md:inline">Cuenta</span>
 </button>
 
-<!-- Modal de cierre de sesión -->
-<div *ngIf="abrirModal"
-     class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-  <div class="bg-white p-6 rounded-2xl shadow-lg w-80 text-center">
-    <h2 class="text-lg font-semibold mb-4">¿Quieres cerrar sesión?</h2>
-    <div class="flex justify-center gap-4">
-      <button class="bg-gray-300 hover:bg-gray-400 py-2 px-4 rounded-lg"
-              (click)="abrirModal = false">
-        Cancelar
-      </button>
-      <button class="bg-red-500 hover:bg-red-550 text-white hovertext py-2 px-4 rounded-lg"
-              (click)="cerrarSesion()">
-        Cerrar sesión
-      </button>
-    </div>
-  </div>
-</div>
+
+

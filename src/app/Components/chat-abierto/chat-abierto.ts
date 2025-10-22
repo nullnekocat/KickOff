@@ -32,7 +32,7 @@ export class ChatAbierto {
     const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     this.messages.push({
-      senderName: this.currentUserName, // aquí usamos la propiedad
+      senderName: this.currentUserName, 
       text: this.inputMessage,
       sender: 'me',
       time
@@ -68,14 +68,12 @@ export class ChatAbierto {
     this.enLlamadaVoz = false;
   }
 
-  // Aceptar llamada de voz
   iniciarLlamadaVoz() {
     this.enLlamadaVoz = true;
     console.log('Llamada de voz iniciada');
     // Aquí podrías integrar WebRTC o tu servicio de llamadas
   }
 
-  // Cerrar/Rechazar llamada
   cerrarLlamadaVoz() {
     this.abrirLlamadaVoz = false;
     this.enLlamadaVoz = false;

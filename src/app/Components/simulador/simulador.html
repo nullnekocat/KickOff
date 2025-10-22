@@ -1,6 +1,6 @@
 
 
-<div class="flex flex-col items-center justify-center w-full h-screen min-h-screen bg-[#2c0a63] text-white p-2 md:p-6 relative overflow-auto">
+<div class="flex z-0 flex-col items-center justify-center w-full h-screen min-h-screen bg-[#302540] text-white p-2 md:p-6 relative overflow-auto">
 	<h1 class="text-4xl font-bold mb-4 text-center">Simulador Mundial 2026</h1>
 
 	<!-- Step 1: Team Selection -->
@@ -9,8 +9,8 @@
 			<h2 class="text-2xl font-semibold mb-2">Selecciona tu equipo para apostar</h2>
 			<div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
 				<div
-					class="bg-[#4c26a6] rounded-lg p-2 flex flex-col items-center cursor-pointer hover:bg-[#6931e6] transition border-4"
-					[ngClass]="selectedTeam === team.name ? 'border-[#e63167]' : 'border-transparent'"
+					class="bg-[#77609a] rounded-lg p-2 flex flex-col items-center cursor-pointer hover:bg-[#5e4b7b] transition border-4"
+					[ngClass]="selectedTeam === team.name ? 'border-[#6805F2]' : 'border-transparent'"
 					*ngFor="let team of teams"
 					(click)="selectTeam(team.name)">
 					<div class="w-10 h-10 mb-1 flex items-center justify-center text-2xl">{{team.flag}}</div>
@@ -19,7 +19,7 @@
 			</div>
 			<div class="mt-4 flex justify-center">
 				<button mat-raised-button color="primary"
-					class="bg-[#e63167] hover:bg-[#c41c4d] text-white px-6 py-2 rounded-full text-lg shadow disabled:opacity-50"
+					class="bg-[#751eee] hover:bg-[#6805F2] text-white px-6 py-2 rounded-full text-lg shadow disabled:opacity-50"
 					[disabled]="!selectedTeam"
 					(click)="startSimulation()">
 					Iniciar simulación
@@ -31,9 +31,9 @@
 
 	<!-- Step 2: Loading Overlay -->
 	<ng-container *ngIf="loading">
-				<div class="absolute inset-0 flex flex-col items-center justify-center bg-[#2c0a63] bg-opacity-95 z-50">
+				<div class="absolute inset-0 flex flex-col items-center justify-center bg-[#322743] bg-opacity-95 z-50">
 						<div class="w-20 h-20 mb-4 flex items-center justify-center">
-							<span class="block w-16 h-16 border-8 border-[#e63167] border-t-transparent rounded-full animate-spin"></span>
+							<span class="block w-16 h-16 border-8 border-[#6805F2] border-t-transparent rounded-full animate-spin"></span>
 						</div>
 						<span class="text-2xl font-semibold">Simulando torneo...</span>
 				</div>
@@ -43,26 +43,26 @@
 	<ng-container *ngIf="showResults && !loading">
 		<div class="w-full flex flex-col items-center justify-center mb-6">
 			<h2 class="text-2xl font-semibold mb-2">Resultados del torneo</h2>
-			<div class="bg-[#3a0f7b] rounded-lg p-4 flex flex-col md:flex-row gap-4">
+			<div class="bg-[#423353] rounded-lg p-4 flex flex-col md:flex-row gap-4">
 				<!-- Group Stage -->
 				<div class="flex-1">
 					<h3 class="font-bold mb-1">Fase de Grupos</h3>
 					<div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-						<div class="bg-[#4c26a6] rounded-lg p-2">
+						<div class="bg-[#6e5c85] rounded-lg p-2">
 							<div class="font-semibold mb-1">Grupo A</div>
 							<div class="text-sm">🇦🇷 2 - 1 🇯🇵</div>
 							<div class="text-sm">🇮🇹 1 - 1 🇲🇽</div>
 							<div class="text-sm">🇦🇷 3 - 0 🇮🇹</div>
 							<div class="text-sm">🇲🇽 2 - 2 🇯🇵</div>
 						</div>
-						<div class="bg-[#4c26a6] rounded-lg p-2">
+						<div class="bg-[#6e5c85] rounded-lg p-2">
 							<div class="font-semibold mb-1">Grupo B</div>
 							<div class="text-sm">🇧🇷 2 - 0 🇪🇸</div>
 							<div class="text-sm">🇺🇸 1 - 2 🇳🇱</div>
 							<div class="text-sm">🇧🇷 1 - 1 🇳🇱</div>
 							<div class="text-sm">🇪🇸 2 - 1 🇺🇸</div>
 						</div>
-						<div class="bg-[#4c26a6] rounded-lg p-2">
+						<div class="bg-[#6e5c85] rounded-lg p-2">
 							<div class="font-semibold mb-1">Grupo C</div>
 							<div class="text-sm">🇫🇷 2 - 2 🇩🇪</div>
 							<div class="text-sm">🇬🇧 1 - 0 🇵🇹</div>
@@ -104,14 +104,14 @@
 						</div>
 					</div>
 					<div class="flex flex-col items-center mt-4">
-						<mat-icon class="text-4xl text-yellow-400 mb-1">emoji_events</mat-icon>
+						<mat-icon class="text-3xl text-yellow-400 mb-1">emoji_events</mat-icon>
 						<span class="font-bold text-lg">¡Campeón: Argentina!</span>
 					</div>
 				</div>
 			</div>
 		</div>
 		<!-- Points Earned -->
-		<div class="w-full flex flex-col items-center bg-[#4c26a6] rounded-xl p-4 shadow mb-4">
+		<div class="w-full flex flex-col items-center bg-[#6e5c85] rounded-xl p-4 shadow mb-4">
 			<span class="text-xl font-semibold mb-2">Puntos ganados</span>
 			<div class="flex items-center gap-2">
 				<mat-icon class="text-yellow-400">star</mat-icon>
@@ -120,6 +120,6 @@
 			</div>
 			<span class="text-sm text-gray-200 mt-2">(Los puntos son solo demostrativos en esta etapa)</span>
 		</div>
-		<button mat-stroked-button class="mt-2 border border-white px-4 py-2 rounded-full" (click)="reset()">Volver a apostar</button>
+		<button mat-stroked-button class="mt-2 border border-white px-4 py-2 rounded-full bg-[#302540] hover:bg-[#403257]" (click)="reset()">Volver a apostar</button>
 	</ng-container>
 </div>

@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { Menu } from '../../Components/menu/menu';
 import { ListaChats } from '../../Components/lista-chats/lista-chats';
 import { ChatAbierto } from '../../Components/chat-abierto/chat-abierto';
 import { Integrantes } from "../../Components/integrantes/integrantes";
@@ -6,10 +7,11 @@ import { Tareas } from "../../Components/tareas/tareas";
 import { Recompensas } from '../../Components/recompensas/recompensas';
 import { NgClass } from '@angular/common';
 
+
 @Component({
   selector: 'app-mensajes',
   standalone: true,
-  imports: [ListaChats, ChatAbierto, Integrantes, 
+  imports: [Menu, ListaChats, ChatAbierto, Integrantes, 
     Tareas, Recompensas, NgClass],
   templateUrl: './mensajes.html',
   styleUrl: './mensajes.css'
