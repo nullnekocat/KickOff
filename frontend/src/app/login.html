@@ -10,11 +10,11 @@
 				<label for="password" class="block text-white mb-1">Contraseña</label>
 				<input id="password" name="password" type="password" class="w-full px-4 py-2 rounded-lg bg-[#5b3f87] text-white focus:outline-none" placeholder="Contraseña" required>
 			</div>
-			<button type="button" [routerLink]="['/home']" class="w-full bg-[#5a28c8] hover:bg-[#501F9D] text-white font-bold py-2 rounded-lg transition">Entrar</button>
+			<button type="button" (click)="onLogin()"  class="w-full bg-[#5a28c8] hover:bg-[#501F9D] text-white font-bold py-2 rounded-lg transition">Entrar</button>
 		</form>
 		<div class="mt-4 text-center">
 			<span class="text-white">¿No tienes cuenta?</span>
-			<a [routerLink]="['/signin']" class="text-[#7d37ed] hover:underline ml-1">Regístrate</a>
+			<a (click)="goToSignin()" class="text-[#7d37ed] hover:underline ml-1">Regístrate</a>
 		</div>
 	</div>
 </div>
