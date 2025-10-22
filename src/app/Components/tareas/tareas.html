@@ -1,7 +1,7 @@
 <div class="bg-white shadow-md rounded-lg p-4 w-full max-w-screen mx-auto">
   <h2 class="text-xl font-bold text-[#330685] mb-4 flex justify-between items-center">
     Tareas
-    <!-- Botón para agregar tarea -->
+    
     <button (click)="agregarTarea()" 
             class=" text-purple-950 ">
       <mat-icon>add</mat-icon>
@@ -10,12 +10,10 @@
 
   <ul class="divide-y divide-gray-200">
     <li *ngFor="let tarea of tareas; let i = index" class="py-3 flex items-center">
-      <!-- Checkbox -->
       <input type="checkbox" 
              [(ngModel)]="tarea.completada" 
              class="mr-3 w-5 h-5 text-[#330685] rounded focus:ring-[#4b0da8]">
       
-      <!-- Nombre de la tarea -->
       <p class="text-lg font-semibold text-gray-800"
          [class.line-through]="tarea.completada"
          [class.text-gray-400]="tarea.completada">

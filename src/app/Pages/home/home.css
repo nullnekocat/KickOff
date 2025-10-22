@@ -1,7 +1,7 @@
 @import "tailwindcss";
-
+ 
 .card {
-  background-color: #4007bc;
+  background-color: #594D73;
   font-size: 1.875rem; /* Tailwind's text-3xl */
   color: #fff;
   border-radius: 0.75rem; /* Tailwind's rounded-xl */
