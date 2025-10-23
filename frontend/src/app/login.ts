@@ -29,13 +29,15 @@ export class Login {
       return;
     }
 
-    this.router.navigate(['/home']);
-    /* */
     this.service.login(name, password).subscribe({
       next: (res: any) => {
         localStorage.setItem('user', JSON.stringify(res.user));
-        alert('✅ Login exitoso');
-        
+
+        //Marcamos al usuario como en linea
+        this.service.setOnline(res.user._id).subscribe();
+
+        alert('Login exitoso');
+        this.router.navigate(['/home']);
       },
       error: (err) => {
         console.error(err);

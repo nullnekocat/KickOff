@@ -31,6 +31,7 @@
 /backend/logs
 /backend/npm-debug.log
 /backend/yarn-error.log
+/backend/.env
 
 # ============================================================
 # 💻 IDEs y editores
