@@ -1,17 +1,15 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { User } from '../models/user.model'; 
+import { User, UserRegister } from '../models/user.model';
 
 @Injectable({
   providedIn: 'root'
 })
-
 export class UserService {
-  private api = 'http://localhost:3000/api/users/'; // tu backend
+  private api = 'http://localhost:3000/api/users'; // quitamos la barra final
 
-  constructor(private http: HttpClient
-  ) { }
+  constructor(private http: HttpClient) {}
 
   // Obtener todos los usuarios
   getUsers(): Observable<User[]> {
@@ -24,11 +22,7 @@ export class UserService {
   }
 
   // Crear usuario
-  createUser(user: User): Observable<User> {
-    // Aquí puedes validar antes de mandar al backend
-    if (!user.name || !user.email || !user.password) {
-      throw new Error('Name, email y password son requeridos');
-    }
+  createUser(user: UserRegister): Observable<User> {
     return this.http.post<User>(this.api, user);
   }
 
@@ -37,17 +31,16 @@ export class UserService {
     return this.http.put<User>(`${this.api}/${id}`, user);
   }
 
-  // Eliminar usuario
-  deleteUser(id: string): Observable<any> {
-    return this.http.delete(`${this.api}/${id}`);
-  }
-
   // Login de usuario
   login(name: string, password: string): Observable<any> {
     if (!name || !password) {
       throw new Error('Nombre de usuario y contraseña son requeridos');
     }
-    return this.http.post<any>(`${this.api}login`, { name, password });
+    return this.http.post<any>(`${this.api}/login`, { name, password });
   }
 
+  // Poner usuario en línea
+  setOnline(id: string): Observable<any> {
+    return this.http.put(`${this.api}/${id}/online`, {});
+  }
 }
