@@ -1,8 +1,6 @@
+<div class="flex z-30 flex-col items-center justify-start w-full max-h-screen bg-[#2c2336] text-white p-2 md:p-6 relative overflow-y-auto">
 
-
-<div class="flex z-0 flex-col items-center justify-center w-full h-screen min-h-screen bg-[#302540] text-white p-2 md:p-6 relative overflow-auto">
-	<h1 class="text-4xl font-bold mb-4 text-center">Simulador Mundial 2026</h1>
-
+ <h1 class="text-4xl font-bold mb-4 text-center">Simulador Mundial 2026</h1>
 	<!-- Step 1: Team Selection -->
 	<ng-container *ngIf="!loading && !showResults">
 		<div class="w-full flex flex-col items-center justify-center mb-6">
@@ -31,7 +29,7 @@
 
 	<!-- Step 2: Loading Overlay -->
 	<ng-container *ngIf="loading">
-				<div class="absolute inset-0 flex flex-col items-center justify-center bg-[#322743] bg-opacity-95 z-50">
+				<div class="fixed inset-0 flex flex-col items-center justify-center bg-[#322743] bg-opacity-95 z-50">
 						<div class="w-20 h-20 mb-4 flex items-center justify-center">
 							<span class="block w-16 h-16 border-8 border-[#6805F2] border-t-transparent rounded-full animate-spin"></span>
 						</div>
@@ -41,9 +39,9 @@
 
 	<!-- Step 3: Results -->
 	<ng-container *ngIf="showResults && !loading">
-		<div class="w-full flex flex-col items-center justify-center mb-6">
-			<h2 class="text-2xl font-semibold mb-2">Resultados del torneo</h2>
-			<div class="bg-[#423353] rounded-lg p-4 flex flex-col md:flex-row gap-4">
+		<div class="w-full flex flex-col items-center justify-center">
+			<h2 class="text-2xl font-semibold mt-6 mb-2">Resultados del torneo</h2>
+			<div class="bg-[#302540] rounded-lg p-4 flex flex-col md:flex-row gap-4">
 				<!-- Group Stage -->
 				<div class="flex-1">
 					<h3 class="font-bold mb-1">Fase de Grupos</h3>
@@ -111,7 +109,7 @@
 			</div>
 		</div>
 		<!-- Points Earned -->
-		<div class="w-full flex flex-col items-center bg-[#6e5c85] rounded-xl p-4 shadow mb-4">
+		<div class="w-full flex flex-col items-center bg-[#6e5c85] rounded-xl p-4 shadow mt-5 mb-4">
 			<span class="text-xl font-semibold mb-2">Puntos ganados</span>
 			<div class="flex items-center gap-2">
 				<mat-icon class="text-yellow-400">star</mat-icon>
