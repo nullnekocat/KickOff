@@ -32,3 +32,46 @@
 .mat-icon.text-5xl {
 	font-size: 3rem !important;
 }
+
+
+.bracket-container {
+  overflow-x: auto;
+  padding-bottom: 2rem;
+}
+
+.bracket {
+  display: flex;
+  gap: 2rem;
+}
+
+.round {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.team {
+  background: #6e5c85;
+  color: #fff;
+  border-radius: 8px;
+  text-align: center;
+  padding: 4px 8px;
+  width: 150px;
+}
+
+.connector {
+  position: absolute;
+  right: -20px;
+  top: 50%;
+  width: 30px;
+  height: 2px;
+  background-color: #8b6fc7;
+}
+
+@media (max-width: 768px) {
+  .team {
+    width: 120px;
+    font-size: 0.75rem;
+  }
+}

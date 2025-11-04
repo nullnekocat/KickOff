@@ -6,8 +6,7 @@ import { Home } from './Pages/home/home';
 import { Mensajes } from './Pages/mensajes/mensajes';
 import { Simulador } from './Components/simulador/simulador';
 import { Ranking } from './Components/ranking/ranking';
-
-
+import { Pipe, PipeTransform } from '@angular/core';
 
 export const routes: Routes = [
   { path: 'login', component: Login },
@@ -25,3 +24,10 @@ export const routes: Routes = [
   exports: [RouterModule]
 })
 export class AppRoutingModule {}
+
+@Pipe({ name: 'charCodeAt', standalone: true })
+export class CharCodeAtPipe implements PipeTransform {
+  transform(value: string, index: number): string {
+    return String.fromCharCode(65 + index);
+  }
+}
