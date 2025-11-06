@@ -102,14 +102,31 @@ exports.loginUser = async (req, res) => {
   }
 };
 
+exports.logoutUser = async (req, res) => {
+  res
+    res
+    .clearCookie('accessToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+    })
+    .status(200)
+    .json({ message: 'Logout successful' });
+}
+
 //Middleware
 function authToken(req, res, next) {
-  const token = req.cookies.access_token;
+  const token = req.cookies.accessToken;
+  req.session = {user : null};
   if (!token) return res.status(401).json({ message: 'No token provided' });
 
-  jwt.verify(token, process.env.JWT_ACCESS_SECRET, (err, user) => {
-    if (err) return res.status(403).json({ message: 'Invalid token' });
-    req.user = user;
-    next();
-  });
+  try {
+    const data = jwt.verify(token, JSW_ACCESS_SECRET);
+    req.session.user = data;
+  } catch {
+    return res.status(403).json({ message: 'Invalid token' });
+  }
+
+  next();
 };

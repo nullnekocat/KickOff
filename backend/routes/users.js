@@ -14,4 +14,7 @@ router.post('/login', userController.loginUser);
 // Actualizar status a online
 router.put('/:id/online', userController.setOnline);
 
+// Logout
+router.post('/logout', userController.logoutUser);
+
 module.exports = router;

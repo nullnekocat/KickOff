@@ -39,6 +39,10 @@ export class UserService {
     return this.http.post<any>(`${this.api}/login`, { name, password }, {withCredentials: true});
   }
 
+  logout(): Observable<any> {
+    return this.http.post<any>(`${this.api}/logout`, {}, { withCredentials: true });
+  }
+
   // Poner usuario en línea
   setOnline(id: string): Observable<any> {
     return this.http.put(`${this.api}/${id}/online`, {});
