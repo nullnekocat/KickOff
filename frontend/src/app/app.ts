@@ -3,6 +3,7 @@ import { Router, NavigationEnd, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { Menu } from './Components/menu/menu';
 import { NgClass, NgIf } from '@angular/common';
+import { UserService } from './services/user.service'; 
 
 @Component({
   selector: 'app-root',
@@ -17,8 +18,8 @@ export class App implements OnInit {
   isMobile = false;
   showMenu = true;
 
-  
   private router = inject(Router);
+  private service = inject(UserService);
 
   ngOnInit() {
     this.checkScreenSize();
@@ -52,10 +53,19 @@ export class App implements OnInit {
 
   abrirModal = false;
 
-  cerrarSesion() {
+  onLogout() {
     this.abrirModal = false;
-    this.router.navigateByUrl('/login');
-    // Lógica real para cerrar sesión
-  }
 
+    this.service.logout().subscribe({
+      next: (res) => {
+        console.log(res.message);
+        alert('Se cerró la sesión');
+        this.router.navigateByUrl('/login');
+      },
+      error: (err) => {
+        console.error('Error al cerrar sesión', err);
+        alert('No se pudo cerrar sesión');
+      }
+    });
+  }
 }

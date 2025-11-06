@@ -43,7 +43,6 @@ export class Login {
         alert('❌ Usuario o contraseña incorrectos');
       }
     });
-   
   }
 
   goToSignin() {
