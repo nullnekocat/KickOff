@@ -20,21 +20,37 @@ export class ChatAbierto implements OnInit{
 
   inputMessage = '';
   messages: { senderName: string; text: string; sender: 'me' | 'other'; time: string; }[] = [];
-  currentUserName: string = 'Usted';
+  currentUserId: string = '';
+  currentUserName: string = '';
 
   constructor(private socketService: SocketService) {}
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
+    // Obtener el usuario actual desde tu API
+    const res = await fetch('http://localhost:3000/api/users/me', { credentials: 'include' });
+    const user = await res.json();
+    this.currentUserId = user.id;
+    this.currentUserName = user.name;
+    
+
+  // Iniciar el socket
     this.socketService.onMessage((msg) => {
       const now = new Date();
-      const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });   
-      const isMe = msg.from === this.socketService.socketId;
+      const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      console.log('Id (usuario) actual:', this.currentUserId);
+      console.log('Nombre (usuario) actual:', this.currentUserName);
+      console.log('id (mensaje enviado):', msg.senderId);
+      console.log('nombre (mensaje enviado):', msg.senderName);
+      const isMe = msg.senderId === this.currentUserId;
+
       this.messages.push({
-        senderName: isMe ? 'Usted' : msg.from,
+        senderName: msg.senderName,
         text: msg.text,
-        sender: isMe ? 'me' : 'other',  // If the message is from myself, style as 'me', else 'other'
-        time: time
+        sender: isMe ? 'me' : 'other',
+        time,
       });
+
       setTimeout(() => this.scrollToBottom(), 0);
     });
   }

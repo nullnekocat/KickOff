@@ -80,7 +80,7 @@ exports.loginUser = async (req, res) => {
 
     const accessToken = jwt.sign(
       payload, 
-      process.env.JSW_ACCESS_SECRET,
+      process.env.JWT_ACCESS_SECRET,
       { expiresIn: '1h' }
     );
 
@@ -102,6 +102,17 @@ exports.loginUser = async (req, res) => {
   }
 };
 
+exports.getCurrentUser = async (req, res) => {
+  const token = req.cookies.accessToken;
+  if (!token) return res.status(401).json({ message: 'No token' });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+    res.json({ id: decoded.id, name: decoded.name });
+  } catch (err) {
+    res.status(403).json({ message: 'Invalid token' });
+  }
+}
+
 exports.logoutUser = async (req, res) => {
   res
     res
@@ -122,7 +133,7 @@ function authToken(req, res, next) {
   if (!token) return res.status(401).json({ message: 'No token provided' });
 
   try {
-    const data = jwt.verify(token, JSW_ACCESS_SECRET);
+    const data = jwt.verify(token, JWT_ACCESS_SECRET);
     req.session.user = data;
   } catch {
     return res.status(403).json({ message: 'Invalid token' });
