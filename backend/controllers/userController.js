@@ -1,17 +1,18 @@
 const User = require('../models/User');
+const jwt = require("jsonwebtoken");
 
 // Crear usuario
 exports.createUser = async (req, res) => {
+  //TODO: hash password
   try {
     const user = new User(req.body);
     const savedUser = await user.save();
     res.status(201).json(savedUser);
   } catch (error) {
-    console.error('❌ Error al crear usuario:', error); // 👈 agrega esto
+    console.error('❌ Error al crear usuario:', error);
     res.status(500).json({ message: 'An error occurred', error });
   }
 };
-
 
 // Actualizar usuario (general)
 exports.updateUser = async (req, res) => {
@@ -53,26 +54,62 @@ exports.setOnline = async (req, res) => {
   }
 };
 
-// Login simple
+// Login
 exports.loginUser = async (req, res) => {
   try {
     const { name, password } = req.body;
 
+    //Validaciones
     if (!name || !password) {
       return res.status(400).json({ message: 'Name and password are required' });
     }
-
     const user = await User.findOne({ name });
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-
     if (user.password !== password) {
       return res.status(401).json({ message: 'Invalid password' });
     }
 
-    res.status(200).json({ message: 'Login successful', user });
+    //Creación de token
+    const payload = {
+      id: user._id,
+      name: user.name,
+      email: user.email
+    };
+
+    const accessToken = jwt.sign(
+      payload, 
+      process.env.JSW_ACCESS_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    res.cookie('accessToken', accessToken, {
+        httpOnly: true, //accesible solo desde el server
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 1000 * 60 * 60
+      })
+    
+    res.status(200).json({
+      message: 'Login successful',
+      user: payload,
+      token: accessToken
+    });
+
   } catch (error) {
     res.status(500).json({ message: 'An error occurred', error });
   }
+};
+
+//Middleware
+function authToken(req, res, next) {
+  const token = req.cookies.access_token;
+  if (!token) return res.status(401).json({ message: 'No token provided' });
+
+  jwt.verify(token, process.env.JWT_ACCESS_SECRET, (err, user) => {
+    if (err) return res.status(403).json({ message: 'Invalid token' });
+    req.user = user;
+    next();
+  });
 };
