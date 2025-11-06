@@ -36,7 +36,11 @@ export class UserService {
     if (!name || !password) {
       throw new Error('Nombre de usuario y contraseña son requeridos');
     }
-    return this.http.post<any>(`${this.api}/login`, { name, password });
+    return this.http.post<any>(`${this.api}/login`, { name, password }, {withCredentials: true});
+  }
+
+  logout(): Observable<any> {
+    return this.http.post<any>(`${this.api}/logout`, {}, { withCredentials: true });
   }
 
   // Poner usuario en línea
