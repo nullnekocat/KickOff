@@ -27,32 +27,28 @@
   </div>
 
   <!-- Lista de chats -->
-  <div class="flex-1 overflow-y-auto p-2">
-    <ul class="space-y-2">
-      <li class="p-3 rounded-lg bg-[#21182B] hover:bg-[#5B4C73] cursor-pointer transition">
-        <div class="flex items-center justify-between">
-          <span class="font-semibold">Juan Pérez</span>
-          <span class="text-xs text-gray-300">10:45 AM</span>
-        </div>
-        <p class="text-sm text-gray-300 truncate">¡Hola! ¿Cómo estás?</p>
-      </li>
+<div class="flex-1 overflow-y-auto p-2">
+  <div *ngIf="loading" class="text-center text-gray-400 py-6">
+    Cargando usuarios...
+  </div>
 
-      <li class="p-3 rounded-lg bg-[#21182B] hover:bg-[#5B4C73] cursor-pointer transition">
-        <div class="flex items-center justify-between">
-          <span class="font-semibold">María López</span>
-          <span class="text-xs text-gray-300">Ayer</span>
-        </div>
-        <p class="text-sm text-gray-300 truncate">Nos vemos mañana en la oficina</p>
-      </li>
+  <ul *ngIf="!loading && chats.length > 0" class="space-y-2">
+    <li
+      *ngFor="let user of chatsFiltrados"
+      class="p-3 rounded-lg bg-[#21182B] hover:bg-[#5B4C73] cursor-pointer transition"
+    >
+      <div class="flex items-center justify-between">
+        <span class="font-semibold">{{ user.name }}</span>
+        <span class="text-xs text-gray-300">
+          {{ user.status === 1 ? '🟢 Online' : '⚫ Offline' }}
+        </span>
+      </div>
+      <p class="text-sm text-gray-300 truncate">{{ user.email }}</p>
+    </li>
+  </ul>
 
-      <li class="p-3 rounded-lg bg-[#21182B] hover:bg-[#5B4C73] cursor-pointer transition">
-        <div class="flex items-center justify-between">
-          <span class="font-semibold">Equipo Proyecto X</span>
-          <span class="text-xs text-gray-300">Lun</span>
-        </div>
-        <p class="text-sm text-gray-300 truncate">Carlos: He subido los archivos al servidor</p>
-      </li>
-    </ul>
+  <div *ngIf="!loading && chats.length === 0" class="text-center text-gray-400 py-6">
+    No hay otros usuarios disponibles.
   </div>
 </div>
 

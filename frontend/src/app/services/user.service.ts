@@ -16,22 +16,22 @@ export class UserService {
     return this.http.get<User[]>(this.api);
   }
 
-  // Obtener un usuario por ID
+  getAllOtherUsers() {
+    return this.http.get<any[]>(this.api, { withCredentials: true });
+  }
+
   getUserById(id: string): Observable<User> {
     return this.http.get<User>(`${this.api}/${id}`);
   }
 
-  // Crear usuario
   createUser(user: UserRegister): Observable<User> {
-    return this.http.post<User>(this.api, user);
+    return this.http.post<User>(`${this.api}/signin`, user);
   }
 
-  // Actualizar usuario
   updateUser(id: string, user: Partial<User>): Observable<User> {
     return this.http.put<User>(`${this.api}/${id}`, user);
   }
 
-  // Login de usuario
   login(name: string, password: string): Observable<any> {
     if (!name || !password) {
       throw new Error('Nombre de usuario y contraseña son requeridos');
