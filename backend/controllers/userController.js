@@ -102,17 +102,6 @@ exports.loginUser = async (req, res) => {
   }
 };
 
-exports.getCurrentUser = async (req, res) => {
-  const token = req.cookies.accessToken;
-  if (!token) return res.status(401).json({ message: 'No token' });
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
-    res.json({ id: decoded.id, name: decoded.name });
-  } catch (err) {
-    res.status(403).json({ message: 'Invalid token' });
-  }
-}
-
 exports.logoutUser = async (req, res) => {
   res
     res
@@ -126,18 +115,26 @@ exports.logoutUser = async (req, res) => {
     .json({ message: 'Logout successful' });
 }
 
-//Middleware
-function authToken(req, res, next) {
+exports.getCurrentUser = async (req, res) => {
   const token = req.cookies.accessToken;
-  req.session = {user : null};
-  if (!token) return res.status(401).json({ message: 'No token provided' });
-
+  if (!token) return res.status(401).json({ message: 'No token' });
   try {
-    const data = jwt.verify(token, JWT_ACCESS_SECRET);
-    req.session.user = data;
-  } catch {
-    return res.status(403).json({ message: 'Invalid token' });
+    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+    res.json({ id: decoded.id, name: decoded.name });
+  } catch (err) {
+    res.status(403).json({ message: 'Invalid token' });
   }
+}
 
-  next();
+exports.getAllOtherUsers = async (req, res) => {
+  try {
+    const currentUserId = req.user.id; // <-- lo obtienes del JWT
+    const users = await User.find({ _id: { $ne: currentUserId } })
+      .select('_id name email status'); // ajusta los campos a tu modelo
+
+    res.json(users);
+  } catch (error) {
+    console.error('❌ Error al obtener usuarios:', error);
+    res.status(500).json({ message: 'Error al obtener usuarios' });
+  }
 };

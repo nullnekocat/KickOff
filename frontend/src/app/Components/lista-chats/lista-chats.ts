@@ -1,10 +1,13 @@
 import { NgClass, NgFor, NgIf } from '@angular/common';
-import { Component, NgModule } from '@angular/core';
-import { FormsModule, NgModel } from '@angular/forms';
+import { Component, OnInit } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { UserService } from '../../services/user.service';
 
 interface Chat {
   id: number;
   name: string;
+  email: string;
+  status: number;
   type: 'privado' | 'grupo';
 }
 
@@ -15,15 +18,49 @@ interface Chat {
   templateUrl: './lista-chats.html',
   styleUrl: './lista-chats.css'
 })
-export class ListaChats {
-selectedTab: 'privados' | 'grupos' = 'privados';
+export class ListaChats implements OnInit {
+  selectedTab: 'privados' | 'grupos' = 'privados';
+  chats: Chat[] = [];
+  contactos: string[] = [];
 
-  chats: Chat[] = [
-    { id: 1, name: 'Juan Pérez', type: 'privado' },
-    { id: 2, name: 'María López', type: 'privado' },
-    { id: 3, name: 'Equipo Proyecto X', type: 'grupo' },
-    { id: 4, name: 'Familia', type: 'grupo' },
-  ];
+  showModal = false;
+  loading = false;
+  filtroContactos = '';
+  seleccionados: string[] = [];
+
+  constructor(private userService: UserService) {}
+
+  ngOnInit() {
+    this.loadUsers();
+  }
+
+  loadUsers() {
+    this.loading = true;
+    this.userService.getAllOtherUsers().subscribe({
+      next: (users) => {
+        
+        /*
+        console.log('📥 Respuesta del backend:', users);
+        if (!users || users.length === 0) {
+          console.warn('⚠️ No se recibieron usuarios o la lista está vacía.');
+        }
+        */
+
+        this.chats = users.map(u => ({
+          id: u._id,
+          name: u.name,
+          email: u.email,
+          status: u.status,
+          type: 'privado',
+        }));
+        this.contactos = users.map(u => u.name);
+      },
+      error: (err) => {
+        console.error('❌ Error cargando usuarios:', err);
+      },
+      complete:() => this.loading = false
+    });
+  }
 
   get chatsFiltrados() {
     return this.chats.filter(c => 
@@ -40,10 +77,12 @@ selectedTab: 'privados' | 'grupos' = 'privados';
   }
 
   //modal 
+  /*
   showModal = false;
   filtroContactos = '';
   contactos: string[] = ['Juan Pérez', 'María López', 'Carlos Sánchez', 'Ana Torres', 'Luis Gómez'];
   seleccionados: string[] = [];
+  */
 
   get contactosFiltrados() {
     return this.contactos.filter(c => 
