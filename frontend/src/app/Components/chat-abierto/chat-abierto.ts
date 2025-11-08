@@ -1,10 +1,12 @@
 import { CommonModule, NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterModule } from '@angular/router';
+import { Subscription } from 'rxjs';
 
 import { SocketService } from '../../services/socket.service';
+import { ChatSelectionService, SelectedChat } from '../../services/chat-selection.service';
 
 @Component({
   selector: 'app-chat-abierto',
@@ -13,7 +15,10 @@ import { SocketService } from '../../services/socket.service';
   templateUrl: './chat-abierto.html',
   styleUrls: ['./chat-abierto.css']
 })
-export class ChatAbierto implements OnInit{
+export class ChatAbierto implements OnInit, OnDestroy{
+  selectedChat: SelectedChat | null = null;
+  private selSub?: Subscription;
+  
   abrirLlamadaVoz: boolean = false;
   enLlamadaVoz: boolean = false;
   abrirVideollamada: boolean = false;
@@ -23,37 +28,40 @@ export class ChatAbierto implements OnInit{
   currentUserId: string = '';
   currentUserName: string = '';
 
-  constructor(private socketService: SocketService) {}
+  constructor(private socketService: SocketService,
+              private chatSelection: ChatSelectionService) {}
 
   async ngOnInit(): Promise<void> {
-    // Obtener el usuario actual desde tu API
-    const res = await fetch('http://localhost:3000/api/users/me', { credentials: 'include' });
-    const user = await res.json();
-    this.currentUserId = user.id;
-    this.currentUserName = user.name;
-    
+  // Obtener el usuario actual
+  const res = await fetch('http://localhost:3000/api/users/me', { credentials: 'include' });
+  const user = await res.json();
+  this.currentUserId = user.id;
+  this.currentUserName = user.name;
 
-  // Iniciar el socket
-    this.socketService.onMessage((msg) => {
-      const now = new Date();
-      const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  // Suscribirse al chat seleccionado
+  this.selSub = this.chatSelection.selected$.subscribe(sel => {
+    console.log('📩 ChatAbierto recibió:', sel);
+    this.selectedChat = sel;
+    // Limpiar mensajes al entrar:
+    this.messages = [];
+  });
 
-      console.log('Id (usuario) actual:', this.currentUserId);
-      console.log('Nombre (usuario) actual:', this.currentUserName);
-      console.log('id (mensaje enviado):', msg.senderId);
-      console.log('nombre (mensaje enviado):', msg.senderName);
-      const isMe = msg.senderId === this.currentUserId;
+  // Iniciar socket listener
+  this.socketService.onMessage((msg) => {
+    const now = new Date();
+    const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const isMe = msg.senderId === this.currentUserId;
 
-      this.messages.push({
-        senderName: msg.senderName,
-        text: msg.text,
-        sender: isMe ? 'me' : 'other',
-        time,
-      });
-
-      setTimeout(() => this.scrollToBottom(), 0);
+    this.messages.push({
+      senderName: msg.senderName,
+      text: msg.text,
+      sender: isMe ? 'me' : 'other',
+      time,
     });
-  }
+
+    setTimeout(() => this.scrollToBottom(), 0);
+  });
+}
 
   sendMessage() {
     if (this.inputMessage.trim()) {
@@ -125,5 +133,9 @@ export class ChatAbierto implements OnInit{
   iniciarLlamada() {
     //TODO: implement WebRTC for calls
     console.log('Llamada iniciada');
+  }
+
+  ngOnDestroy(): void {
+    this.selSub?.unsubscribe();
   }
 }

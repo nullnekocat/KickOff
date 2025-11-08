@@ -23,7 +23,7 @@
   <!-- Barra de búsqueda simple -->
   <div class="p-2 bg-[#2C2336]">
     <input type="text" placeholder="Buscar..." 
-           class="w-full py-2 px-4 rounded-full bg-[#1e1725] text-white placeholder-gray-400 focus:outline-none" />
+          class="w-full py-2 px-4 rounded-full bg-[#1e1725] text-white placeholder-gray-400 focus:outline-none" />
   </div>
 
   <!-- Lista de chats -->
@@ -35,7 +35,9 @@
   <ul *ngIf="!loading && chats.length > 0" class="space-y-2">
     <li
       *ngFor="let user of chatsFiltrados"
+      (click)="openChat(user)"
       class="p-3 rounded-lg bg-[#21182B] hover:bg-[#5B4C73] cursor-pointer transition"
+      [ngClass]="chatSelection.getSelected()?.id === user.id ? 'ring-2 ring-[#6805F2]' : ''"
     >
       <div class="flex items-center justify-between">
         <span class="font-semibold">{{ user.name }}</span>
@@ -58,10 +60,10 @@
     <h2 class="text-xl font-semibold mb-4">Crear nuevo grupo</h2>
 
     <input type="text" placeholder="Nombre del grupo" 
-           class="w-full mb-4 py-2 px-3 rounded-md bg-[#21182B] text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2C2336]" />
+          class="w-full mb-4 py-2 px-3 rounded-md bg-[#21182B] text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2C2336]" />
 
     <input type="text" [(ngModel)]="filtroContactos" placeholder="Buscar contactos..." 
-           class="w-full mb-3 py-2 px-3 rounded-md bg-[#21182B] text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2C2336]" />
+          class="w-full mb-3 py-2 px-3 rounded-md bg-[#21182B] text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2C2336]" />
 
     <div class="max-h-40 overflow-y-auto mb-4">
       <ul class="space-y-2">
