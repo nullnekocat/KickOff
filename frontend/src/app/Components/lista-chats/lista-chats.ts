@@ -1,10 +1,12 @@
 import { NgClass, NgFor, NgIf } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+import { ChatSelectionService } from '../../services/chat-selection.service';
 import { UserService } from '../../services/user.service';
 
 interface Chat {
-  id: number;
+  id: string;
   name: string;
   email: string;
   status: number;
@@ -28,7 +30,9 @@ export class ListaChats implements OnInit {
   filtroContactos = '';
   seleccionados: string[] = [];
 
-  constructor(private userService: UserService) {}
+  constructor(private userService: UserService,
+            public chatSelection: ChatSelectionService,
+            private router: Router) {}
 
   ngOnInit() {
     this.loadUsers();
@@ -73,7 +77,15 @@ export class ListaChats implements OnInit {
   }
 
   openChat(chat: Chat) {
-    console.log('Abrir chat:', chat);
+    console.log('🟢 Chat clickeado:', chat);
+    // establece seleccionado en el servicio
+    this.chatSelection.setSelected({
+      id: String(chat.id),
+      name: chat.name,
+      email: chat.email,
+      status: chat.status
+    });
+    console.log('📤 Enviado al servicio:', this.chatSelection.getSelected());
   }
 
   //modal 
