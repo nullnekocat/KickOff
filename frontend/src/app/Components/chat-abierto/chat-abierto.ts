@@ -18,15 +18,17 @@ import { ChatSelectionService, SelectedChat } from '../../services/chat-selectio
 export class ChatAbierto implements OnInit, OnDestroy{
   selectedChat: SelectedChat | null = null;
   private selSub?: Subscription;
-  
-  abrirLlamadaVoz: boolean = false;
-  enLlamadaVoz: boolean = false;
-  abrirVideollamada: boolean = false;
+  roomId: string | null = null;
+  lastRoomId: string | null = null;
 
   inputMessage = '';
   messages: { senderName: string; text: string; sender: 'me' | 'other'; time: string; }[] = [];
   currentUserId: string = '';
   currentUserName: string = '';
+
+  abrirLlamadaVoz: boolean = false;
+  enLlamadaVoz: boolean = false;
+  abrirVideollamada: boolean = false;
 
   constructor(private socketService: SocketService,
               private chatSelection: ChatSelectionService) {}
@@ -42,9 +44,22 @@ export class ChatAbierto implements OnInit, OnDestroy{
   this.selSub = this.chatSelection.selected$.subscribe(sel => {
     console.log('📩 ChatAbierto recibió:', sel);
     this.selectedChat = sel;
-    // Limpiar mensajes al entrar:
     this.messages = [];
+
+    if (sel) {
+      const newRoom = [this.currentUserId, sel.id].sort().join('_');
+
+      if (newRoom !== this.lastRoomId) {
+        this.roomId = newRoom;
+        this.lastRoomId = newRoom;
+        console.log('🏠 Entrando al room:', this.roomId);
+        this.socketService.joinRoom(this.roomId);
+      } else {
+        console.log('⚙️ Ya estás en este room');
+      }
+    }
   });
+
 
   // Iniciar socket listener
   this.socketService.onMessage((msg) => {
@@ -64,8 +79,8 @@ export class ChatAbierto implements OnInit, OnDestroy{
 }
 
   sendMessage() {
-    if (this.inputMessage.trim()) {
-      this.socketService.sendMessage(this.inputMessage);
+    if (this.roomId) {
+      this.socketService.sendMessage(this.roomId, this.inputMessage);
       this.inputMessage = '';
     }
   }

@@ -83,14 +83,29 @@ io.use((socket, next) => {
 io.on('connection', (socket) => {
   console.log(`✅ User connected: ${socket.user.name} (${socket.user.id}), socket id: ${socket.id}`);
 
-  socket.on('message', (msg) => {
-    console.log(`💬 [${socket.user.name}] ${msg}`);
+  // Selecciona un chat y se une a un room privado
+  socket.on('joinRoom', (data) => {
+    const { roomId } = data;
+    if (!roomId) return;
 
-    // Emitir mensaje junto con datos de usuario (no usar socket.id)
-    io.emit('message', {
+    socket.join(roomId);
+    console.log(`👥 ${socket.user.name} joined room ${roomId}`);
+  });
+
+  // Se emite mensaje solo al room actual
+  socket.on('message', ({ roomId, text }) => {
+    if (!roomId) return console.warn('⚠️ message sin roomId');
+    console.log(`💬 Mensaje en room ${roomId}:`, {
+      from: socket.user.name,
+      id: socket.user.id,
+      text
+    });
+
+    io.to(roomId).emit('message', {
       senderName: socket.user.name,
       senderId: socket.user.id,
-      text: msg,
+      text,
+      roomId,
     });
   });
 
