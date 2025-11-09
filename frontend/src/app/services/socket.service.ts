@@ -42,4 +42,8 @@ export class SocketService {
     onMessage(callback: (message: ChatMessage) => void): void {
         this.socket.on('message', callback);
     }
+
+    onUserStatusChange(callback: (data: { userId: string, status: number }) => void): void {
+        this.socket.on('userStatus', callback);
+    }
 }

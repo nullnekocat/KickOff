@@ -2,6 +2,7 @@ import { NgClass, NgFor, NgIf } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { SocketService } from '../../services/socket.service';
 import { ChatSelectionService } from '../../services/chat-selection.service';
 import { UserService } from '../../services/user.service';
 
@@ -32,10 +33,19 @@ export class ListaChats implements OnInit {
 
   constructor(private userService: UserService,
             public chatSelection: ChatSelectionService,
+            private socketService: SocketService,
             private router: Router) {}
 
   ngOnInit() {
     this.loadUsers();
+
+    // Actualiza status en tiempo real
+    this.socketService.onUserStatusChange(({ userId, status }) => {
+      const user = this.chats.find(u => u.id === userId);
+      if (user) {
+        user.status = status;
+      }
+    });
   }
 
   loadUsers() {
@@ -76,6 +86,7 @@ export class ListaChats implements OnInit {
     this.selectedTab = tab;
   }
 
+  
   openChat(chat: Chat) {
     console.log('🟢 Chat clickeado:', chat);
     // establece seleccionado en el servicio
