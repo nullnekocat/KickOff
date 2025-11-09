@@ -7,6 +7,7 @@ import { Subscription } from 'rxjs';
 
 import { SocketService } from '../../services/socket.service';
 import { ChatSelectionService, SelectedChat } from '../../services/chat-selection.service';
+import { MessageService, Message } from '../../services/message.service';
 
 @Component({
   selector: 'app-chat-abierto',
@@ -31,58 +32,78 @@ export class ChatAbierto implements OnInit, OnDestroy{
   abrirVideollamada: boolean = false;
 
   constructor(private socketService: SocketService,
-              private chatSelection: ChatSelectionService) {}
+              private chatSelection: ChatSelectionService,
+              private messageService: MessageService) {}
 
   async ngOnInit(): Promise<void> {
-  // Obtener el usuario actual
-  const res = await fetch('http://localhost:3000/api/users/me', { credentials: 'include' });
-  const user = await res.json();
-  this.currentUserId = user.id;
-  this.currentUserName = user.name;
+    // Obtener el usuario actual
+    const res = await fetch('http://localhost:3000/api/users/me', { credentials: 'include' });
+    const user = await res.json();
+    this.currentUserId = user.id;
+    this.currentUserName = user.name;
 
-  // Suscribirse al chat seleccionado
-  this.selSub = this.chatSelection.selected$.subscribe(sel => {
-    console.log('📩 ChatAbierto recibió:', sel);
-    this.selectedChat = sel;
-    this.messages = [];
+    // Suscribirse al chat seleccionado
+    this.selSub = this.chatSelection.selected$.subscribe(sel => {
+      console.log('📩 ChatAbierto recibió:', sel);
+      this.selectedChat = sel;
+      this.messages = [];
 
-    if (sel) {
-      const newRoom = [this.currentUserId, sel.id].sort().join('_');
+      if (sel) {
+        const newRoom = [this.currentUserId, sel.id].sort().join('_');
 
-      if (newRoom !== this.lastRoomId) {
-        this.roomId = newRoom;
-        this.lastRoomId = newRoom;
-        console.log('🏠 Entrando al room:', this.roomId);
-        this.socketService.joinRoom(this.roomId);
-      } else {
-        console.log('⚙️ Ya estás en este room');
+        if (newRoom !== this.lastRoomId) {
+          this.roomId = newRoom;
+          this.lastRoomId = newRoom;
+          console.log('🏠 Entrando al room:', this.roomId);
+          this.socketService.joinRoom(this.roomId);
+
+          //Cargar historial del room desde MongoDB
+          this.loadMessageHistory(this.roomId);
+        }
       }
-    }
-  });
-
-
-  // Iniciar socket listener
-  this.socketService.onMessage((msg) => {
-    const now = new Date();
-    const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const isMe = msg.senderId === this.currentUserId;
-
-    this.messages.push({
-      senderName: msg.senderName,
-      text: msg.text,
-      sender: isMe ? 'me' : 'other',
-      time,
     });
 
-    setTimeout(() => this.scrollToBottom(), 0);
-  });
-}
+
+    // Iniciar socket listener
+    this.socketService.onMessage((msg) => {
+
+      if (msg.roomId !== this.roomId) return;
+
+      const now = new Date();
+      const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const isMe = msg.senderId === this.currentUserId;
+
+      this.messages.push({
+        senderName: msg.senderName,
+        text: msg.text,
+        sender: isMe ? 'me' : 'other',
+        time,
+      });
+
+      setTimeout(() => this.scrollToBottom(), 0);
+    });
+  }
+
+  loadMessageHistory(roomId: string) {
+    this.messageService.getMessages(roomId).subscribe({
+      next: (msgs) => {
+        console.log(`📚 ${msgs.length} mensajes cargados del room ${roomId}`);
+        this.messages = msgs.map(m => ({
+          senderName: m.senderId === this.currentUserId ? this.currentUserName : this.selectedChat?.name || 'Usuario',
+          text: m.text,
+          sender: m.senderId === this.currentUserId ? 'me' : 'other',
+          time: new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }));
+        setTimeout(() => this.scrollToBottom(), 0);
+      },
+      error: (err) => console.error('❌ Error cargando historial:', err)
+    });
+  }
 
   sendMessage() {
-    if (this.roomId) {
-      this.socketService.sendMessage(this.roomId, this.inputMessage);
-      this.inputMessage = '';
-    }
+    if (!this.inputMessage.trim() || !this.roomId) return;
+    this.socketService.sendMessage(this.roomId, this.inputMessage);
+    this.inputMessage = '';
   }
     /*
     if (!this.inputMessage.trim()) return;
