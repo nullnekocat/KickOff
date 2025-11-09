@@ -26,13 +26,19 @@ export class SocketService {
         });
     }
 
-    sendMessage(message: string): void {
-        if (!this.socket) return;
-        this.socket.emit('message', message);
+    // 📦 Unirse a un room privado
+    joinRoom(roomId: string) {
+        this.socket.emit('joinRoom', { roomId });
+        console.log('📤 Uniendo al room:', roomId);
+    }
+
+    // 💬 Enviar mensaje al room actual
+    sendMessage(roomId: string, text: string): void {
+        if (!roomId) return;
+        this.socket.emit('message', { roomId, text });
     }
 
     onMessage(callback: (message: ChatMessage) => void): void {
-        if (!this.socket) return;
         this.socket.on('message', callback);
     }
 }
