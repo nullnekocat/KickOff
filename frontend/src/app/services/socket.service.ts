@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { io, Socket } from 'socket.io-client';
 
 export interface ChatMessage {
+    roomId: string;
     senderId: string;
     senderName: string;
     text: string;
