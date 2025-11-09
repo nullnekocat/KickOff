@@ -7,6 +7,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const cookie = require('cookie');
 const jwt = require('jsonwebtoken');
+const Message = require('./models/Message');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -17,9 +18,9 @@ app.use(cookieParser());
 
 // CORS settings
 app.use(cors({
-    origin: 'http://localhost:4200',
-    methods: ['GET', 'POST', 'PUT'],
-    credentials: true
+  origin: 'http://localhost:4200',
+  methods: ['GET', 'POST', 'PUT'],
+  credentials: true
 }));
 const io = new Server(server, {
   cors: {
@@ -32,7 +33,9 @@ const io = new Server(server, {
 connectDB();
 
 const userRoutes = require('./routes/users');
+const messageRoutes = require('./routes/messages');
 app.use('/api/users', userRoutes);
+app.use('/api/messages', messageRoutes);
 
 // Endpoints
 app.get('/', (req, res) => {
@@ -92,15 +95,24 @@ io.on('connection', (socket) => {
     console.log(`👥 ${socket.user.name} joined room ${roomId}`);
   });
 
-  // Se emite mensaje solo al room actual
-  socket.on('message', ({ roomId, text }) => {
+  socket.on('message', async ({ roomId, text, isEncrypted = false }) => {
     if (!roomId) return console.warn('⚠️ message sin roomId');
-    console.log(`💬 Mensaje en room ${roomId}:`, {
-      from: socket.user.name,
-      id: socket.user.id,
-      text
-    });
+    console.log(`💬 [${socket.user.name}] in room ${roomId}: ${text}`);
 
+    // Guardar mensaje en MongoDB
+    try {
+      const msg = new Message({
+        roomId,
+        senderId: socket.user.id,
+        text,
+        isEncrypted
+      });
+      await msg.save();
+    } catch (err) {
+      console.error('❌ Error guardando mensaje en MongoDB:', err);
+    }
+
+    // Emitir mensaje a todos en el room
     io.to(roomId).emit('message', {
       senderName: socket.user.name,
       senderId: socket.user.id,
