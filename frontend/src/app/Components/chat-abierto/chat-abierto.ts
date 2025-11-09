@@ -63,7 +63,14 @@ export class ChatAbierto implements OnInit, OnDestroy{
       }
     });
 
-
+    // Actualizar estado en tiempo real
+    this.socketService.onUserStatusChange(({ userId, status }) => {
+      if (this.selectedChat && this.selectedChat.id === userId) {
+        this.selectedChat.status = status;
+        console.log(`⚡ Estado actualizado: ${this.selectedChat.name} -> ${status ? 'En línea' : 'Desconectado'}`);
+      }
+    });
+    
     // Iniciar socket listener
     this.socketService.onMessage((msg) => {
 
