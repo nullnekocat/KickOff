@@ -1,6 +1,6 @@
 import { CommonModule, NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterModule } from '@angular/router';
 import { Subscription } from 'rxjs';
@@ -33,6 +33,8 @@ export class ChatAbierto implements OnInit, OnDestroy{
   abrirLlamadaVoz: boolean = false;
   enLlamadaVoz: boolean = false;
   abrirVideollamada: boolean = false;
+
+  @ViewChild('messagesContainer') private messagesContainer!: ElementRef;
 
   constructor(private socketService: SocketService,
               private chatSelection: ChatSelectionService,
@@ -68,7 +70,7 @@ export class ChatAbierto implements OnInit, OnDestroy{
         time,
         isEncrypted: msg.isEncrypted
       });
-      setTimeout(() => this.scrollToBottom(), 0);
+      setTimeout(() => this.scrollToBottom(), 10);
     });
 
     this.socketService.localMessage$.subscribe((msg) => {
@@ -83,7 +85,7 @@ export class ChatAbierto implements OnInit, OnDestroy{
         isEncrypted: msg.isEncrypted
       });
 
-      setTimeout(() => this.scrollToBottom(), 0);
+      setTimeout(() => this.scrollToBottom(), 10);
     });
 
     this.socketService.roomKeyReady$.subscribe(roomId => {
@@ -159,7 +161,7 @@ export class ChatAbierto implements OnInit, OnDestroy{
             };
           }));
         this.messages = processed;
-        setTimeout(() => this.scrollToBottom(), 0);
+        setTimeout(() => this.scrollToBottom(), 200);
       },
       error: (err) => console.error('❌ Error cargando historial:', err)
     });
@@ -186,7 +188,7 @@ export class ChatAbierto implements OnInit, OnDestroy{
       await this.socketService.sendMessage(this.roomId, this.inputMessage, this.encryptionEnabled);
       // Limpiar input después de enviar
       this.inputMessage = '';
-      setTimeout(() => this.scrollToBottom(), 50);
+      setTimeout(() => this.scrollToBottom(), 200);
     } catch (err) {
       console.error('❌ Error enviando mensaje:', err);
     }
@@ -227,12 +229,15 @@ export class ChatAbierto implements OnInit, OnDestroy{
   }
   */
 
-  scrollToBottom() {
-    const container = document.querySelector('.overflow-y-auto');
-    if (container) container.scrollTop = container.scrollHeight;
+  scrollToBottom(): void {
+    try {
+      this.messagesContainer.nativeElement.scrollTop =
+        this.messagesContainer.nativeElement.scrollHeight;
+    } catch (err) {
+      console.warn('⚠️ No se pudo hacer scroll:', err);
+    }
   }
 
-  
   abrirLlamadaVozModal() {
     this.abrirLlamadaVoz = true;
     this.enLlamadaVoz = false;
