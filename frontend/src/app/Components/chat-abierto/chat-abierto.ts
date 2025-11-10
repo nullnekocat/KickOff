@@ -23,6 +23,7 @@ export class ChatAbierto implements OnInit, OnDestroy{
   roomId: string | null = null;
   lastRoomId: string | null = null;
 
+  roomKeyReady = false;
   encryptionEnabled = false;
   inputMessage = '';
   messages: { senderName: string; text: string; sender: 'me' | 'other'; time: string; isEncrypted: boolean}[] = [];
@@ -85,6 +86,13 @@ export class ChatAbierto implements OnInit, OnDestroy{
       setTimeout(() => this.scrollToBottom(), 0);
     });
 
+    this.socketService.roomKeyReady$.subscribe(roomId => {
+      if (roomId === this.roomId) {
+        this.roomKeyReady = true;
+        console.log('✅ roomKey lista para', roomId);
+      }
+    });
+
     // Suscribirse al chat seleccionado
     this.selSub = this.chatSelection.selected$.subscribe(async sel => {
       this.selectedChat = sel;
@@ -101,6 +109,9 @@ export class ChatAbierto implements OnInit, OnDestroy{
           this.socketService.sendPublicKey(this.currentUserId);
 
           await this.socketService.ensureRoomKey(this.roomId, this.currentUserId, sel.id);
+          const roomKey = this.socketService.getStoredRoomKeyBase64(this.roomId);
+          this.roomKeyReady = !!roomKey;
+
           await this.loadMessageHistory(this.roomId);
         }
       }

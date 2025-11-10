@@ -18,7 +18,15 @@
       <button class="text-gray-300 hover:text-white" (click)="abrirLlamadaVozModal()"><mat-icon>phone</mat-icon></button>
       <button class="text-gray-300 hover:text-white" (click)="abrirLlamada()"><mat-icon>videocam</mat-icon></button>
       <button class="text-gray-300 hover:text-white" (click)="toggleEncryption()">
-        <mat-icon>{{ encryptionEnabled ? 'lock' : 'lock_open' }}</mat-icon>
+        <button 
+          (click)="toggleEncryption()" 
+          [disabled]="!roomKeyReady"
+          [ngClass]="{ 'opacity-50 cursor-not-allowed': !roomKeyReady }"
+          mat-icon-button >
+          <mat-icon>
+            {{ encryptionEnabled ? 'lock' : 'lock_open' }}
+          </mat-icon>
+        </button>
       </button>
     </div>
   </div>
