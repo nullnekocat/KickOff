@@ -1,1 +1,31 @@
 @import "tailwindcss";
+
+.message {
+    max-width: 75vw;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+}
+
+.message.me {
+    align-self: flex-end;
+    background-color: #501F9D;
+    color: white;
+    border-radius: 1rem 1rem 0 1rem;
+}
+
+.message.other {
+    align-self: flex-start;
+    background-color: #f1f1f1;
+    color: #333;
+    border-radius: 1rem 1rem 1rem 0;
+}
+
+.messages-container {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    height: calc(100vh - 180px);
+    padding: 1rem;
+    scroll-behavior: smooth;
+}
