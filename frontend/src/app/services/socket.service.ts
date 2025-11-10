@@ -18,7 +18,9 @@ export class SocketService {
     private socket!: Socket;
     public socketId: string | undefined = '';
     private publicKeys: Record<string, string> = {}; // { userId: publicKeyBase64 }
+    
     public localMessage$ = new Subject<ChatMessage>();
+    public roomKeyReady$ = new Subject<string>();
 
     constructor(private encryptionService: EncryptionService) {
         this.socket = io('http://localhost:3000', { withCredentials: true });
@@ -201,8 +203,10 @@ export class SocketService {
 
                 localStorage.setItem(`roomKey_${roomId}`, roomKeyB64);
                 console.log('🔐 roomKey recibida y guardada para', roomId);
-
-                // ack
+                
+                // Notificar habilitación de botón
+                this.roomKeyReady$.next(roomId);
+                
                 this.socket.emit('roomKeyAck', { roomId, toUserId: fromUserId });
             } catch (err) {
                 console.error('❌ Error al procesar roomKeyOffered:', err);
