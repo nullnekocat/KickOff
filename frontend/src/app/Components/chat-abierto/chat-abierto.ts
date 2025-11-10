@@ -8,6 +8,7 @@ import { Subscription } from 'rxjs';
 import { SocketService } from '../../services/socket.service';
 import { ChatSelectionService, SelectedChat } from '../../services/chat-selection.service';
 import { MessageService, Message } from '../../services/message.service';
+import { EncryptionService } from '../../services/encryption.service';
 
 @Component({
   selector: 'app-chat-abierto',
@@ -22,8 +23,9 @@ export class ChatAbierto implements OnInit, OnDestroy{
   roomId: string | null = null;
   lastRoomId: string | null = null;
 
+  encryptionEnabled = false;
   inputMessage = '';
-  messages: { senderName: string; text: string; sender: 'me' | 'other'; time: string; }[] = [];
+  messages: { senderName: string; text: string; sender: 'me' | 'other'; time: string; isEncrypted: boolean}[] = [];
   currentUserId: string = '';
   currentUserName: string = '';
 
@@ -33,7 +35,8 @@ export class ChatAbierto implements OnInit, OnDestroy{
 
   constructor(private socketService: SocketService,
               private chatSelection: ChatSelectionService,
-              private messageService: MessageService) {}
+              private messageService: MessageService,
+              private encryptionService: EncryptionService) {}
 
   async ngOnInit(): Promise<void> {
     // Obtener el usuario actual
@@ -41,10 +44,49 @@ export class ChatAbierto implements OnInit, OnDestroy{
     const user = await res.json();
     this.currentUserId = user.id;
     this.currentUserName = user.name;
+    localStorage.setItem('currentUserId', user.id);
+
+    if (!this.encryptionService.getPublicKey() || !this.encryptionService.getPrivateKey()) {
+      await this.encryptionService.generateAndStoreKeyPair();
+    }
+
+    this.socketService.onMessage((msg) => {
+      if (msg.roomId !== this.roomId) return;
+
+      // Ignorar mensajes propios (se muestran localmente)
+      if (msg.senderId === this.currentUserId) return;
+
+      const now = new Date();
+      const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const isMe = msg.senderId === this.currentUserId;
+
+      this.messages.push({
+        senderName: msg.senderName,
+        text: msg.text,
+        sender: isMe ? 'me' : 'other',
+        time,
+        isEncrypted: msg.isEncrypted
+      });
+      setTimeout(() => this.scrollToBottom(), 0);
+    });
+
+    this.socketService.localMessage$.subscribe((msg) => {
+      const now = new Date();
+      const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      this.messages.push({
+        senderName: this.currentUserName,
+        text: msg.text,
+        sender: 'me',
+        time,
+        isEncrypted: msg.isEncrypted
+      });
+
+      setTimeout(() => this.scrollToBottom(), 0);
+    });
 
     // Suscribirse al chat seleccionado
-    this.selSub = this.chatSelection.selected$.subscribe(sel => {
-      console.log('📩 ChatAbierto recibió:', sel);
+    this.selSub = this.chatSelection.selected$.subscribe(async sel => {
       this.selectedChat = sel;
       this.messages = [];
 
@@ -56,9 +98,10 @@ export class ChatAbierto implements OnInit, OnDestroy{
           this.lastRoomId = newRoom;
           console.log('🏠 Entrando al room:', this.roomId);
           this.socketService.joinRoom(this.roomId);
+          this.socketService.sendPublicKey(this.currentUserId);
 
-          //Cargar historial del room desde MongoDB
-          this.loadMessageHistory(this.roomId);
+          await this.socketService.ensureRoomKey(this.roomId, this.currentUserId, sel.id);
+          await this.loadMessageHistory(this.roomId);
         }
       }
     });
@@ -69,49 +112,75 @@ export class ChatAbierto implements OnInit, OnDestroy{
         this.selectedChat.status = status;
         console.log(`⚡ Estado actualizado: ${this.selectedChat.name} -> ${status ? 'En línea' : 'Desconectado'}`);
       }
-    });
-    
-    // Iniciar socket listener
-    this.socketService.onMessage((msg) => {
-
-      if (msg.roomId !== this.roomId) return;
-
-      const now = new Date();
-      const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const isMe = msg.senderId === this.currentUserId;
-
-      this.messages.push({
-        senderName: msg.senderName,
-        text: msg.text,
-        sender: isMe ? 'me' : 'other',
-        time,
-      });
-
-      setTimeout(() => this.scrollToBottom(), 0);
-    });
+    });   
   }
 
-  loadMessageHistory(roomId: string) {
+  async loadMessageHistory(roomId: string) {
     this.messageService.getMessages(roomId).subscribe({
-      next: (msgs) => {
+      next: async (msgs) => {
         console.log(`📚 ${msgs.length} mensajes cargados del room ${roomId}`);
-        this.messages = msgs.map(m => ({
-          senderName: m.senderId === this.currentUserId ? this.currentUserName : this.selectedChat?.name || 'Usuario',
-          text: m.text,
-          sender: m.senderId === this.currentUserId ? 'me' : 'other',
-          time: new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        }));
+
+        const roomKeyB64 = this.socketService.getStoredRoomKeyBase64(roomId);
+
+        const processed: { senderName: string; text: string; sender: 'me' | 'other'; time: string; isEncrypted: boolean}[] =
+          await Promise.all(msgs.map(async (m) => {
+            let text = m.text;
+
+            if (m.isEncrypted) {
+              if (roomKeyB64) {
+                try {
+                  text = await this.socketService.aesDecryptBase64(roomKeyB64, m.text, m.iv || '');
+                } catch (err) {
+                  console.error('❌ Error desencriptando mensaje del historial:', err);
+                  text = '[Error al desencriptar]';
+                }
+              } else {
+                text = '[Mensaje encriptado]';
+              }
+            }
+
+            return {
+              senderName: m.senderId === this.currentUserId ? this.currentUserName : (this.selectedChat?.name || 'Usuario'),
+              text,
+              sender: m.senderId === this.currentUserId ? 'me' : 'other',
+              time: new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              isEncrypted: m.isEncrypted
+            };
+          }));
+        this.messages = processed;
         setTimeout(() => this.scrollToBottom(), 0);
       },
       error: (err) => console.error('❌ Error cargando historial:', err)
     });
   }
 
-  sendMessage() {
-    if (!this.inputMessage.trim() || !this.roomId) return;
-    this.socketService.sendMessage(this.roomId, this.inputMessage);
-    this.inputMessage = '';
+  private base64ToArrayBuffer(base64: string): ArrayBuffer {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes.buffer;
   }
+
+  toggleEncryption() {
+  this.encryptionEnabled = !this.encryptionEnabled;
+  console.log(this.encryptionEnabled ? '🔒 Encriptación activada' : '🔓 Encriptación desactivada');
+  }
+
+  async sendMessage() {
+    if (!this.inputMessage.trim() || !this.roomId) return;
+
+    try {
+      await this.socketService.sendMessage(this.roomId, this.inputMessage, this.encryptionEnabled);
+      // Limpiar input después de enviar
+      this.inputMessage = '';
+      setTimeout(() => this.scrollToBottom(), 50);
+    } catch (err) {
+      console.error('❌ Error enviando mensaje:', err);
+    }
+  }
+
     /*
     if (!this.inputMessage.trim()) return;
     const now = new Date();

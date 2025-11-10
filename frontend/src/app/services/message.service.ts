@@ -7,6 +7,7 @@ export interface Message {
     roomId: string;
     senderId: string;
     text: string;
+    iv?: string;
     isEncrypted: boolean;
     createdAt: string;
 }
@@ -21,9 +22,4 @@ export class MessageService {
     getMessages(roomId: string): Observable<Message[]> {
         return this.http.get<Message[]>(`${this.api}/${roomId}`, { withCredentials: true });
     }
-
-    // Crear mensaje manualmente (si no lo envías por socket)
-    //sendMessage(message: Partial<Message>): Observable<Message> {
-    //    return this.http.post<Message>(this.api, message, { withCredentials: true });
-    //}
 }

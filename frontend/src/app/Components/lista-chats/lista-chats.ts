@@ -89,7 +89,6 @@ export class ListaChats implements OnInit {
   
   openChat(chat: Chat) {
     console.log('🟢 Chat clickeado:', chat);
-    // establece seleccionado en el servicio
     this.chatSelection.setSelected({
       id: String(chat.id),
       name: chat.name,

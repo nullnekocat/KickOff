@@ -31,10 +31,6 @@ export class Login {
 
     this.service.login(name, password).subscribe({
       next: (res: any) => {
-        //localStorage.setItem('user', JSON.stringify(res.user));
-        //Marcamos al usuario como en linea
-        //this.service.setOnline(res.user._id).subscribe();
-
         alert('Login exitoso');
         this.router.navigate(['/home']);
       },
