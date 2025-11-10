@@ -17,7 +17,9 @@
     <div class="flex gap-2"> 
       <button class="text-gray-300 hover:text-white" (click)="abrirLlamadaVozModal()"><mat-icon>phone</mat-icon></button>
       <button class="text-gray-300 hover:text-white" (click)="abrirLlamada()"><mat-icon>videocam</mat-icon></button>
-      <button class="text-gray-300 hover:text-white"><mat-icon>lock</mat-icon></button>
+      <button class="text-gray-300 hover:text-white" (click)="toggleEncryption()">
+        <mat-icon>{{ encryptionEnabled ? 'lock' : 'lock_open' }}</mat-icon>
+      </button>
     </div>
   </div>
 
@@ -28,7 +30,11 @@
         class="text-white p-3 rounded-xl max-w-[75%]">
       <div class="font-semibold text-sm mb-1">{{ msg.senderName }}</div>
       <div>{{ msg.text }}</div>
-      <div class="text-xs text-gray-200 mt-1 text-right">{{ msg.time }}</div>
+      <div class="text-xs text-gray-200 mt-1 text-right">
+        <mat-icon class="!text-[15px] !inline" *ngIf="msg.isEncrypted">lock</mat-icon>
+        <mat-icon class="!text-[15px] !inline" *ngIf="!msg.isEncrypted">lock_open</mat-icon> 
+        <span> • {{ msg.time }}</span>
+      </div>
     </div>
   </div>
 

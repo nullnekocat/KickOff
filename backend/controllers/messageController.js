@@ -17,7 +17,6 @@ exports.createMessage = async (req, res) => {
         });
 
         const saved = await newMessage.save();
-
         res.status(201).json(saved);
     } catch (error) {
         console.error('❌ Error al crear mensaje:', error);

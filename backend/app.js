@@ -8,8 +8,10 @@ const { Server } = require('socket.io');
 const cookie = require('cookie');
 const jwt = require('jsonwebtoken');
 
-const Message = require('./models/Message');
 const User = require('./models/User');
+const RoomKeyOffer = require('./models/RoomKeyOffer');
+const Message = require('./models/Message');
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -47,26 +49,6 @@ app.get('/', (req, res) => {
   res.send('The server root!');
 });
 
-//app.get('/test', authToken, (req, res) => {
-//  res.json(test.filter(test => test.name === req.user.name));
-//})
-
-/*
-io.on('connection', (socket) => {
-  console.log('a user connected, socket id:', socket.id);
-
-  socket.on('message', (msg) => {
-    console.log('received message from', socket.id, msg);
-    // Broadcast message with sender's socket id
-    io.emit('message', { from: socket.id, text: `${msg}` })
-  });
-
-  socket.on('disconnect', (reason) => {
-    console.log('user disconnected', socket.id, 'reason:', reason);
-  });
-});
-*/
-
 io.use((socket, next) => {
   try {
     // Leer cookies desde la cabecera del handshake
@@ -88,11 +70,17 @@ io.use((socket, next) => {
   }
 });
 
+const userPublicKeys = {}; // { userId: base64PublicKey }
+const userSockets = {}; // { userId: socketId }
+
 io.on('connection', async (socket) => {
   console.log(`✅ User connected: ${socket.user.name} (${socket.user.id}), socket id: ${socket.id}`);
   const userId = socket.user.id;
 
-  // 🟢 Marcar usuario como online al conectar
+  // Registrar socket para este userId
+  userSockets[socket.user.id] = socket.id;
+
+   // 🟢 Marcar usuario como online al conectar
   try {
     await User.findByIdAndUpdate(userId, { status: 1 });
     console.log(`🟢 ${socket.user.name} está en línea`);
@@ -101,25 +89,88 @@ io.on('connection', async (socket) => {
     console.error('❌ Error al actualizar estado online:', err);
   }
 
-  // Selecciona un chat y se une a un room privado
-  socket.on('joinRoom', (data) => {
-    const { roomId } = data;
-    if (!roomId) return;
+  const pendingOffers = await RoomKeyOffer.find({ toUserId: userId });
+  for (const offer of pendingOffers) {
+    socket.emit('roomKeyOffered', {
+      roomId: offer.roomId,
+      fromUserId: offer.fromUserId,
+      encryptedRoomKey: offer.encryptedRoomKey
+    });
+    console.log(`📬 Entregada roomKeyOffer pendiente de ${offer.fromUserId} a ${userId}`);
+    await RoomKeyOffer.deleteOne({ _id: offer._id }); // eliminar tras entregar
+  }
 
-    socket.join(roomId);
-    console.log(`👥 ${socket.user.name} joined room ${roomId}`);
+  // Cuando recibe oferta de roomKey (oferta cifrada destino)
+  socket.on('roomKeyOffer', async ({ roomId, toUserId, encryptedRoomKey }) => {
+    const targetSocketId = userSockets[toUserId];
+    if (targetSocketId) {
+      io.to(targetSocketId).emit('roomKeyOffered', {
+        roomId,
+        fromUserId: socket.user.id,
+        encryptedRoomKey
+      });
+      console.log(`🔐 roomKeyOffer de ${socket.user.id} -> ${toUserId} para ${roomId}`);
+    } else {
+      console.log(`💾 Guardando roomKeyOffer pendiente para ${toUserId}`);
+      await RoomKeyOffer.create({ roomId, fromUserId: socket.user.id, toUserId, encryptedRoomKey });
+    }
   });
 
-  socket.on('message', async ({ roomId, text, isEncrypted = false }) => {
-    if (!roomId) return console.warn('⚠️ message sin roomId');
-    console.log(`💬 [${socket.user.name}] in room ${roomId}: ${text}`);
+  // Cuando un peer acepta/manda su propia oferta de vuelta (opcional)
+  socket.on('roomKeyAck', ({ roomId, toUserId }) => {
+    const targetSocketId = userSockets[toUserId];
+    if (targetSocketId) {
+      io.to(targetSocketId).emit('roomKeyAck', { roomId, fromUserId: socket.user.id });
+    }
+  });
 
-    // Guardar mensaje en MongoDB
+  // Recibir clave pública del usuario
+  socket.on('publicKey', ({ userId, publicKey }) => {
+    userPublicKeys[userId] = publicKey;
+    console.log(`🔐 Clave pública recibida de ${userId}`);
+
+    // Si ya está en un room, notificar a los demás
+    if (socket.roomId) {
+      socket.to(socket.roomId).emit('userPublicKey', { userId, publicKey });
+    }
+  });
+
+  // Selecciona un chat y se une a un room privado
+  socket.on('joinRoom', ({ roomId }) => {
+    socket.join(roomId);
+    socket.roomId = roomId;
+    console.log(`👥 ${socket.user.name} entró a room ${roomId}`);
+
+    // Obtener otros sockets conectados al mismo room
+    const clients = Array.from(io.sockets.adapter.rooms.get(roomId) || []);
+    const otherUsers = clients
+      .map((id) => io.sockets.sockets.get(id))
+      .filter((s) => s && s.user?.id !== socket.user.id);
+
+    // Enviar a este socket las claves públicas de los demás
+    const publicKeys = otherUsers
+      .map((s) => ({
+        userId: s.user.id,
+        publicKey: userPublicKeys[s.user.id],
+      }))
+      .filter((k) => k.publicKey); // Solo los que ya enviaron su clave
+
+    if (publicKeys.length) {
+      socket.emit('roomPublicKeys', publicKeys);
+      console.log(`📦 Enviadas ${publicKeys.length} claves públicas al nuevo usuario`);
+    }
+  });
+
+  socket.on('message', async ({ roomId, text, iv, isEncrypted = false }) => {
+    if (!roomId) return console.warn('⚠️ message sin roomId');
+    console.log(`💬 [${socket.user.name}] in room ${roomId}`);
+
     try {
       const msg = new Message({
         roomId,
         senderId: socket.user.id,
         text,
+        iv,
         isEncrypted
       });
       await msg.save();
@@ -127,16 +178,18 @@ io.on('connection', async (socket) => {
       console.error('❌ Error guardando mensaje en MongoDB:', err);
     }
 
-    // Emitir mensaje a todos en el room
     io.to(roomId).emit('message', {
+      roomId,
       senderName: socket.user.name,
       senderId: socket.user.id,
       text,
-      roomId,
+      iv,
+      isEncrypted
     });
   });
 
   socket.on('disconnect', (reason) => {
+    delete userSockets[socket.user.id];
     console.log(`🔴 User ${socket.user?.name || socket.id} disconnected:`, reason);
 
     // Esperar unos segundos por si se reconecta rápido

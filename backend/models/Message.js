@@ -14,6 +14,10 @@ const MessageSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    iv: { 
+        type: String,
+        default: null
+    },
     media: {
         url: { type: String, default: null },     // URL del archivo (si existe)
         type: { type: String, enum: ['image', 'video', 'audio', 'file', null], default: null }, // tipo de archivo
