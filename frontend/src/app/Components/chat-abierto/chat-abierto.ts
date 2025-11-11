@@ -7,7 +7,7 @@ import { Subscription } from 'rxjs';
 
 import { SocketService } from '../../services/socket.service';
 import { ChatSelectionService, SelectedChat } from '../../services/chat-selection.service';
-import { MessageService, Message } from '../../services/message.service';
+import { MessageService, MediaData } from '../../services/message.service';
 import { EncryptionService } from '../../services/encryption.service';
 
 @Component({
@@ -26,9 +26,19 @@ export class ChatAbierto implements OnInit, OnDestroy {
   roomKeyReady = false;
   encryptionEnabled = false;
   inputMessage = '';
-  messages: { senderName: string; text: string; sender: 'me' | 'other'; time: string; isEncrypted: boolean }[] = [];
+  messages: {
+    senderName: string;
+    text: string;
+    sender: string;
+    time: string;
+    isEncrypted: boolean;
+    media?: MediaData | null;
+  }[] = [];
+
   currentUserId: string = '';
   currentUserName: string = '';
+
+  uploading = false;
 
   abrirLlamadaVoz: boolean = false;
   enLlamadaVoz: boolean = false;
@@ -68,7 +78,8 @@ export class ChatAbierto implements OnInit, OnDestroy {
         text: msg.text,
         sender: isMe ? 'me' : 'other',
         time,
-        isEncrypted: msg.isEncrypted
+        isEncrypted: msg.isEncrypted,
+        media: msg.media || null
       });
       setTimeout(() => this.scrollToBottom(), 10);
     });
@@ -79,10 +90,11 @@ export class ChatAbierto implements OnInit, OnDestroy {
 
       this.messages.push({
         senderName: this.currentUserName,
-        text: msg.text,
+        text: msg.text || '',
         sender: 'me',
         time,
-        isEncrypted: msg.isEncrypted
+        isEncrypted: msg.isEncrypted || false,
+        media: msg.media || null
       });
 
       setTimeout(() => this.scrollToBottom(), 10);
@@ -136,31 +148,32 @@ export class ChatAbierto implements OnInit, OnDestroy {
 
         const roomKeyB64 = this.socketService.getStoredRoomKeyBase64(roomId);
 
-        const processed: { senderName: string; text: string; sender: 'me' | 'other'; time: string; isEncrypted: boolean }[] =
-          await Promise.all(msgs.map(async (m) => {
-            let text = m.text;
+        const processed = await Promise.all(msgs.map(async (m) => {
+          let text = m.text;
 
-            if (m.isEncrypted) {
-              if (roomKeyB64) {
-                try {
-                  text = await this.socketService.aesDecryptBase64(roomKeyB64, m.text, m.iv || '');
-                } catch (err) {
-                  console.error('❌ Error desencriptando mensaje del historial:', err);
-                  text = '[Error al desencriptar]';
-                }
-              } else {
-                text = '[Mensaje encriptado]';
+          if (m.isEncrypted) {
+            if (roomKeyB64) {
+              try {
+                text = await this.socketService.aesDecryptBase64(roomKeyB64, m.text, m.iv || '');
+              } catch (err) {
+                console.error('❌ Error desencriptando mensaje del historial:', err);
+                text = '[Error al desencriptar]';
               }
+            } else {
+              text = '[Mensaje encriptado]';
             }
+          }
 
-            return {
-              senderName: m.senderId === this.currentUserId ? this.currentUserName : (this.selectedChat?.name || 'Usuario'),
-              text,
-              sender: m.senderId === this.currentUserId ? 'me' : 'other',
-              time: new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              isEncrypted: m.isEncrypted
-            };
-          }));
+          return {
+            senderName: m.senderId === this.currentUserId ? this.currentUserName : (this.selectedChat?.name || 'Usuario'),
+            text,
+            sender: m.senderId === this.currentUserId ? 'me' : 'other',
+            time: new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            isEncrypted: m.isEncrypted,
+            media: m.media || null   // 👈 añadir esto
+          };
+        }));
+
         this.messages = processed;
         setTimeout(() => this.scrollToBottom(), 200);
       },
@@ -208,40 +221,27 @@ export class ChatAbierto implements OnInit, OnDestroy {
     }
   }
 
-  /*
-  if (!this.inputMessage.trim()) return;
-  const now = new Date();
-  const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-  this.messages.push({
-    senderName: this.currentUserName, 
-    text: this.inputMessage,
-    sender: 'me',
-    time
-  });
-
-  this.inputMessage = '';
-  setTimeout(() => this.scrollToBottom(), 0);
-  */
-
-  /*
-  TODO: File system
-  sendFile(event: any) {
+  async sendFile(event: any) {
     const file = event.target.files[0];
-    if (file) {
-      const now = new Date();
-      const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      this.messages.push({
-        senderName: this.currentUserName, 
-        text: `Archivo: ${file.name}`,
-        sender: 'me',
-        time
-      });
-      setTimeout(() => this.scrollToBottom(), 0);
+    if (!file || !this.roomId) return;
+
+    this.uploading = true;
+
+    try {
+      const payload = await this.socketService.sendMediaMessage(
+        this.roomId,
+        file,
+        this.encryptionEnabled
+      );
+
+      console.log('📸 Media enviada:', payload?.media);
+    } catch (err) {
+      console.error('❌ Error enviando archivo:', err);
+    } finally {
+      this.uploading = false;
+      event.target.value = '';
     }
-    event.target.value = '';
   }
-  */
 
   scrollToBottom(): void {
     try {

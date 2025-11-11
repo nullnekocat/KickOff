@@ -2,6 +2,8 @@ import { Injectable } from '@angular/core';
 import { io, Socket } from 'socket.io-client';
 import { EncryptionService } from './encryption.service';
 import { Subject } from 'rxjs';
+import { MediaData } from './message.service';
+import { SupabaseService } from './supabase.service';
 
 export interface ChatMessage {
     roomId: string;
@@ -11,6 +13,7 @@ export interface ChatMessage {
     iv?: string;
     isEncrypted: boolean;
     createdAt?: string;
+    media?: MediaData | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -18,11 +21,14 @@ export class SocketService {
     private socket!: Socket;
     public socketId: string | undefined = '';
     private publicKeys: Record<string, string> = {}; // { userId: publicKeyBase64 }
-    
+
     public localMessage$ = new Subject<ChatMessage>();
     public roomKeyReady$ = new Subject<string>();
 
-    constructor(private encryptionService: EncryptionService) {
+    constructor(
+        private encryptionService: EncryptionService,
+        private supabaseService: SupabaseService
+    ) {
         this.socket = io('http://localhost:3000', { withCredentials: true });
 
         this.socket.on('connect', () => {
@@ -203,10 +209,10 @@ export class SocketService {
 
                 localStorage.setItem(`roomKey_${roomId}`, roomKeyB64);
                 console.log('🔐 roomKey recibida y guardada para', roomId);
-                
+
                 // Notificar habilitación de botón
                 this.roomKeyReady$.next(roomId);
-                
+
                 this.socket.emit('roomKeyAck', { roomId, toUserId: fromUserId });
             } catch (err) {
                 console.error('❌ Error al procesar roomKeyOffered:', err);
@@ -219,10 +225,10 @@ export class SocketService {
     }
 
     // ---------------- Messaging (AES only for messages) ---------------- //
-    async sendMessage(roomId: string, text: string, isEncrypted: boolean = false): Promise<void> {
+    async sendMessage(roomId: string, text: string, isEncrypted = false): Promise<void> {
         if (!roomId || !text.trim()) return;
 
-        let payload: any = { roomId, text, isEncrypted: false };
+        let payload: any = { roomId, text, iv: null, isEncrypted: false, media: null }; // 👈 media por defecto
 
         if (isEncrypted) {
             const roomKeyB64 = this.getStoredRoomKeyBase64(roomId);
@@ -233,7 +239,7 @@ export class SocketService {
 
             try {
                 const { ciphertextBase64, ivBase64 } = await this.aesEncryptWithIvBase64(roomKeyB64, text);
-                payload = { roomId, text: ciphertextBase64, iv: ivBase64, isEncrypted: true };
+                payload = { roomId, text: ciphertextBase64, iv: ivBase64, isEncrypted: true, media: null };
                 console.log('🔐 Mensaje cifrado con AES listo para enviar');
             } catch (err) {
                 console.error('❌ Error al cifrar con AES:', err);
@@ -243,16 +249,62 @@ export class SocketService {
 
         this.socket.emit('message', payload);
 
-        // Se muestra el mensaje local sin encriptar
+        // Emitir localmente
         const localMsg: ChatMessage = {
             roomId,
             senderId: localStorage.getItem('currentUserId') || '',
             senderName: 'Tú',
             text,
             iv: payload.iv,
-            isEncrypted
+            isEncrypted,
+            media: payload.media || null
         };
         this.localMessage$.next(localMsg);
+    }
+
+    // TODO: Encryption of media
+    async sendMediaMessage(roomId: string, file: File, isEncrypted = false): Promise<any> {
+        if (!roomId || !file) return;
+
+        try {
+            console.log('📤 Subiendo archivo a Supabase...');
+            const { SupabaseService } = await import('./supabase.service');
+            const supabase = new SupabaseService();
+            const media = await supabase.uploadFile(file);
+
+            if (!media || !media.url) {
+                console.warn('⚠️ Error: el archivo no devolvió URL');
+                return null;
+            }
+
+            const senderId = localStorage.getItem('currentUserId') || '';
+            const senderName = localStorage.getItem('currentUserName') || 'Tú';
+
+            const payload = {
+                roomId,
+                senderId,
+                senderName,
+                text: '',
+                iv: undefined,
+                isEncrypted,
+                media
+            };
+
+            this.socket.emit('message', {
+                ...payload,
+                media: payload.media ? { ...payload.media } : null
+            });
+            this.localMessage$.next({
+                ...payload,
+                media: payload.media ? { ...payload.media } : null
+            });
+
+            console.log('✅ Archivo emitido y propagado:', media);
+            return payload;
+        } catch (err) {
+            console.error('❌ Error al enviar archivo:', err);
+            return null;
+        }
     }
 
     //Receptor desencripta AES si corresponde
@@ -261,9 +313,8 @@ export class SocketService {
             try {
                 const currentUserId = localStorage.getItem('currentUserId');
 
-                // si no está cifrado o es mi propio mensaje lo mostramos tal cual
                 if (!msg.isEncrypted || msg.senderId === currentUserId) {
-                    callback(msg);
+                    callback({ ...msg, media: msg.media ? { ...msg.media } : null });
                     return;
                 }
 
@@ -272,17 +323,17 @@ export class SocketService {
                 if (!roomKeyB64) {
                     console.warn('⚠️ No roomKey local para desencriptar');
                     msg.text = '[Mensaje encriptado]';
-                    callback(msg);
+                    callback({ ...msg, media: msg.media ? { ...msg.media } : null });
                     return;
                 }
 
                 const decrypted = await this.aesDecryptBase64(roomKeyB64, msg.text, msg.iv || '');
                 msg.text = decrypted;
-                callback(msg);
+                callback({ ...msg, media: msg.media ? { ...msg.media } : null });
             } catch (err) {
                 console.error('❌ Error al desencriptar mensaje:', err);
                 msg.text = '[Mensaje encriptado]';
-                callback(msg);
+                callback({ ...msg, media: msg.media ? { ...msg.media } : null });
             }
         });
     }

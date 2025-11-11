@@ -80,7 +80,7 @@ io.on('connection', async (socket) => {
   // Registrar socket para este userId
   userSockets[socket.user.id] = socket.id;
 
-   // 🟢 Marcar usuario como online al conectar
+  // 🟢 Marcar usuario como online al conectar
   try {
     await User.findByIdAndUpdate(userId, { status: 1 });
     console.log(`🟢 ${socket.user.name} está en línea`);
@@ -161,9 +161,8 @@ io.on('connection', async (socket) => {
     }
   });
 
-  socket.on('message', async ({ roomId, text, iv, isEncrypted = false }) => {
+  socket.on('message', async ({ roomId, text, iv, isEncrypted = false, media = null }) => {
     if (!roomId) return console.warn('⚠️ message sin roomId');
-    console.log(`💬 [${socket.user.name}] in room ${roomId}`);
 
     try {
       const msg = new Message({
@@ -171,7 +170,8 @@ io.on('connection', async (socket) => {
         senderId: socket.user.id,
         text,
         iv,
-        isEncrypted
+        isEncrypted,
+        media: media || { url: null, type: null, name: null }
       });
       await msg.save();
     } catch (err) {
@@ -184,9 +184,12 @@ io.on('connection', async (socket) => {
       senderId: socket.user.id,
       text,
       iv,
-      isEncrypted
+      isEncrypted,
+      media: media || null
     });
   });
+
+  socket.on('message', (msg) => console.log(msg));
 
   socket.on('disconnect', (reason) => {
     delete userSockets[socket.user.id];
