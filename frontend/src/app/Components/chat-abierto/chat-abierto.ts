@@ -17,7 +17,7 @@ import { EncryptionService } from '../../services/encryption.service';
   templateUrl: './chat-abierto.html',
   styleUrls: ['./chat-abierto.css']
 })
-export class ChatAbierto implements OnInit, OnDestroy{
+export class ChatAbierto implements OnInit, OnDestroy {
   selectedChat: SelectedChat | null = null;
   private selSub?: Subscription;
   roomId: string | null = null;
@@ -26,7 +26,7 @@ export class ChatAbierto implements OnInit, OnDestroy{
   roomKeyReady = false;
   encryptionEnabled = false;
   inputMessage = '';
-  messages: { senderName: string; text: string; sender: 'me' | 'other'; time: string; isEncrypted: boolean}[] = [];
+  messages: { senderName: string; text: string; sender: 'me' | 'other'; time: string; isEncrypted: boolean }[] = [];
   currentUserId: string = '';
   currentUserName: string = '';
 
@@ -37,9 +37,9 @@ export class ChatAbierto implements OnInit, OnDestroy{
   @ViewChild('messagesContainer') private messagesContainer!: ElementRef;
 
   constructor(private socketService: SocketService,
-              private chatSelection: ChatSelectionService,
-              private messageService: MessageService,
-              private encryptionService: EncryptionService) {}
+    private chatSelection: ChatSelectionService,
+    private messageService: MessageService,
+    private encryptionService: EncryptionService) { }
 
   async ngOnInit(): Promise<void> {
     // Obtener el usuario actual
@@ -105,6 +105,7 @@ export class ChatAbierto implements OnInit, OnDestroy{
 
         if (newRoom !== this.lastRoomId) {
           this.roomId = newRoom;
+          this.loadEncryptionState(this.roomId);
           this.lastRoomId = newRoom;
           console.log('🏠 Entrando al room:', this.roomId);
           this.socketService.joinRoom(this.roomId);
@@ -125,7 +126,7 @@ export class ChatAbierto implements OnInit, OnDestroy{
         this.selectedChat.status = status;
         console.log(`⚡ Estado actualizado: ${this.selectedChat.name} -> ${status ? 'En línea' : 'Desconectado'}`);
       }
-    });   
+    });
   }
 
   async loadMessageHistory(roomId: string) {
@@ -135,7 +136,7 @@ export class ChatAbierto implements OnInit, OnDestroy{
 
         const roomKeyB64 = this.socketService.getStoredRoomKeyBase64(roomId);
 
-        const processed: { senderName: string; text: string; sender: 'me' | 'other'; time: string; isEncrypted: boolean}[] =
+        const processed: { senderName: string; text: string; sender: 'me' | 'other'; time: string; isEncrypted: boolean }[] =
           await Promise.all(msgs.map(async (m) => {
             let text = m.text;
 
@@ -177,8 +178,21 @@ export class ChatAbierto implements OnInit, OnDestroy{
   }
 
   toggleEncryption() {
-  this.encryptionEnabled = !this.encryptionEnabled;
-  console.log(this.encryptionEnabled ? '🔒 Encriptación activada' : '🔓 Encriptación desactivada');
+    if (!this.roomKeyReady) return; // seguridad extra
+    this.encryptionEnabled = !this.encryptionEnabled;
+    this.saveEncryptionState();
+    console.log(this.encryptionEnabled ? '🔒 Encriptación activada' : '🔓 Encriptación desactivada');
+  }
+
+  private saveEncryptionState() {
+    if (this.roomId) {
+      localStorage.setItem(`encEnabled_${this.roomId}`, JSON.stringify(this.encryptionEnabled));
+    }
+  }
+
+  private loadEncryptionState(roomId: string) {
+    const stored = localStorage.getItem(`encEnabled_${roomId}`);
+    this.encryptionEnabled = stored ? JSON.parse(stored) : false;
   }
 
   async sendMessage() {
@@ -194,22 +208,22 @@ export class ChatAbierto implements OnInit, OnDestroy{
     }
   }
 
-    /*
-    if (!this.inputMessage.trim()) return;
-    const now = new Date();
-    const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  /*
+  if (!this.inputMessage.trim()) return;
+  const now = new Date();
+  const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    this.messages.push({
-      senderName: this.currentUserName, 
-      text: this.inputMessage,
-      sender: 'me',
-      time
-    });
+  this.messages.push({
+    senderName: this.currentUserName, 
+    text: this.inputMessage,
+    sender: 'me',
+    time
+  });
 
-    this.inputMessage = '';
-    setTimeout(() => this.scrollToBottom(), 0);
-    */
-  
+  this.inputMessage = '';
+  setTimeout(() => this.scrollToBottom(), 0);
+  */
+
   /*
   TODO: File system
   sendFile(event: any) {

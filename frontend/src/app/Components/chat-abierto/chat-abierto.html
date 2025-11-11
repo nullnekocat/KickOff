@@ -14,33 +14,30 @@
         </span>
       </div>
     </div>
-    <div class="flex gap-2"> 
-      <button class="text-gray-300 hover:text-white" (click)="abrirLlamadaVozModal()"><mat-icon>phone</mat-icon></button>
+    <div class="flex gap-2">
+      <button class="text-gray-300 hover:text-white"
+        (click)="abrirLlamadaVozModal()"><mat-icon>phone</mat-icon></button>
       <button class="text-gray-300 hover:text-white" (click)="abrirLlamada()"><mat-icon>videocam</mat-icon></button>
-      <button class="text-gray-300 hover:text-white" (click)="toggleEncryption()">
-        <button 
-          (click)="toggleEncryption()" 
-          [disabled]="!roomKeyReady"
-          [ngClass]="{ 'opacity-50 cursor-not-allowed': !roomKeyReady }"
-          mat-icon-button >
-          <mat-icon>
-            {{ encryptionEnabled ? 'lock' : 'lock_open' }}
-          </mat-icon>
-        </button>
+      <button (click)="toggleEncryption()" [disabled]="!roomKeyReady"
+        [ngClass]="{ 'opacity-50 cursor-not-allowed': !roomKeyReady }" mat-icon-button
+        class="text-gray-300 hover:text-white">
+        <mat-icon>
+          {{ encryptionEnabled ? 'lock' : 'lock_open' }}
+        </mat-icon>
       </button>
     </div>
   </div>
 
   <!-- mensajes -->
   <div class="messages-container flex-1 overflow-y-auto p-4 flex flex-col gap-2 bg-[#2C2336] w-full" #messagesContainer>
-    <div *ngFor="let msg of messages" 
-        [ngClass]="msg.sender === 'me' ? 'self-end bg-[#3d2563]' : 'self-start bg-[#5b3f87]'"
-        class="text-white p-3 rounded-xl max-w-[75%]">
+    <div *ngFor="let msg of messages"
+      [ngClass]="msg.sender === 'me' ? 'self-end bg-[#3d2563]' : 'self-start bg-[#5b3f87]'"
+      class="text-white p-3 rounded-xl max-w-[75%]">
       <div class="font-semibold text-sm mb-1">{{ msg.senderName }}</div>
       <div>{{ msg.text }}</div>
       <div class="text-xs text-gray-200 mt-1 text-right">
         <mat-icon class="!text-[15px] !inline" *ngIf="msg.isEncrypted">lock</mat-icon>
-        <mat-icon class="!text-[15px] !inline" *ngIf="!msg.isEncrypted">lock_open</mat-icon> 
+        <mat-icon class="!text-[15px] !inline" *ngIf="!msg.isEncrypted">lock_open</mat-icon>
         <span> • {{ msg.time }}</span>
       </div>
     </div>
@@ -48,17 +45,17 @@
 
   <!-- barra baja -->
   <div class="flex items-center p-3 bg-[#1e1725] gap-2 flex-shrink-0 w-full">
-    <input type="text" [(ngModel)]= "inputMessage" placeholder="Escribe un mensaje..." 
-          class="flex-1 rounded-full px-4 py-2 bg-[#59496b] text-white focus:outline-none"
-          (keydown.enter)="sendMessage()">
+    <input type="text" [(ngModel)]="inputMessage" placeholder="Escribe un mensaje..."
+      class="flex-1 rounded-full px-4 py-2 bg-[#59496b] text-white focus:outline-none" (keydown.enter)="sendMessage()">
 
-    <label for="fileInput" class="bg-[#501F9D] w-10 h-10 rounded-full flex items-center justify-center text-white cursor-pointer hover:bg-[#5a28c8]">
+    <label for="fileInput"
+      class="bg-[#501F9D] w-10 h-10 rounded-full flex items-center justify-center text-white cursor-pointer hover:bg-[#5a28c8]">
       <mat-icon>attach_file</mat-icon>
     </label>
     <!--input type="file" id="fileInput" class="hidden" (change)="sendFile($event)"-->
 
-    <button class="bg-[#501F9D] w-10 h-10 rounded-full flex items-center justify-center text-white hover:bg-[#5a28c8]" 
-            (click)="sendMessage()">
+    <button class="bg-[#501F9D] w-10 h-10 rounded-full flex items-center justify-center text-white hover:bg-[#5a28c8]"
+      (click)="sendMessage()">
       <mat-icon>send</mat-icon>
     </button>
   </div>
@@ -67,10 +64,9 @@
 
 
 <!-- modal llamada de voz -->
-<div *ngIf="abrirLlamadaVoz"
-    class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+<div *ngIf="abrirLlamadaVoz" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
   <div class="bg-white p-6 rounded-2xl shadow-lg w-[24rem] max-w-full text-center relative">
-    
+
     <div class="flex flex-col items-center mb-6">
       <div class="w-24 h-24 rounded-full bg-[#e63167] flex items-center justify-center text-white text-3xl font-bold">
         JP
@@ -81,29 +77,27 @@
 
     <div class="flex justify-center gap-6">
       <button class="bg-red-500 hover:bg-red-600 text-white py-3 px-6 rounded-full flex items-center gap-2"
-              (click)="cerrarLlamadaVoz()">
+        (click)="cerrarLlamadaVoz()">
         <mat-icon>call_end</mat-icon>
         Rechazar
       </button>
       <button class="bg-green-500 hover:bg-green-600 text-white py-3 px-6 rounded-full flex items-center gap-2"
-              (click)="iniciarLlamadaVoz()">
+        (click)="iniciarLlamadaVoz()">
         <mat-icon>call</mat-icon>
         Aceptar
       </button>
     </div>
 
-    <button class="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
-            (click)="cerrarLlamadaVoz()">
+    <button class="absolute top-3 right-3 text-gray-500 hover:text-gray-700" (click)="cerrarLlamadaVoz()">
       <mat-icon>close</mat-icon>
     </button>
   </div>
 </div>
 
 <!-- modal videollamada -->
-<div *ngIf="abrirVideollamada"
-  class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+<div *ngIf="abrirVideollamada" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
   <div class="bg-white p-6 rounded-2xl shadow-lg w-[32rem] max-w-full text-center relative">
-    
+
     <h2 class="text-lg font-semibold mb-4 text-[#330685]">Videollamada</h2>
 
     <div class="bg-black rounded-xl h-64 flex items-center justify-center mb-6">
@@ -112,20 +106,19 @@
 
     <div class="flex justify-center gap-6">
       <button class="bg-red-500 hover:bg-red-600 text-white py-2 px-6 rounded-full flex items-center gap-2"
-              (click)="cerrarLlamada()">
+        (click)="cerrarLlamada()">
         <mat-icon>call_end</mat-icon>
         Rechazar
       </button>
 
       <button class="bg-green-500 hover:bg-green-600 text-white py-2 px-6 rounded-full flex items-center gap-2"
-              (click)="iniciarLlamada()">
+        (click)="iniciarLlamada()">
         <mat-icon>call</mat-icon>
         Aceptar
       </button>
     </div>
 
-    <button class="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
-            (click)="cerrarLlamada()">
+    <button class="absolute top-3 right-3 text-gray-500 hover:text-gray-700" (click)="cerrarLlamada()">
       <mat-icon>close</mat-icon>
     </button>
   </div>
