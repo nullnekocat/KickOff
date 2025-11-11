@@ -34,6 +34,16 @@
       [ngClass]="msg.sender === 'me' ? 'self-end bg-[#3d2563]' : 'self-start bg-[#5b3f87]'"
       class="text-white p-3 rounded-xl max-w-[75%]">
       <div class="font-semibold text-sm mb-1">{{ msg.senderName }}</div>
+
+      <!-- Mostrar media -->
+      <ng-container *ngIf="msg.media">
+        <img *ngIf="msg.media.type === 'image'" [src]="msg.media.url" class="max-w-full rounded-lg mb-2" alt="imagen">
+        <video *ngIf="msg.media.type === 'video'" [src]="msg.media.url" class="max-w-full rounded-lg mb-2"
+          controls></video>
+        <a *ngIf="msg.media.type === 'file'" [href]="msg.media.url" target="_blank" class="underline text-blue-300">{{
+          msg.media.name }}</a>
+      </ng-container>
+
       <div>{{ msg.text }}</div>
       <div class="text-xs text-gray-200 mt-1 text-right">
         <mat-icon class="!text-[15px] !inline" *ngIf="msg.isEncrypted">lock</mat-icon>
@@ -46,14 +56,18 @@
   <!-- barra baja -->
   <div class="flex items-center p-3 bg-[#1e1725] gap-2 flex-shrink-0 w-full">
     <input type="text" [(ngModel)]="inputMessage" placeholder="Escribe un mensaje..."
-      class="flex-1 rounded-full px-4 py-2 bg-[#59496b] text-white focus:outline-none" (keydown.enter)="sendMessage()">
+      class="flex-1 rounded-full px-4 py-2 bg-[#59496b] text-white focus:outline-none"
+      (keydown.enter)="sendMessage()" />
 
-    <label for="fileInput"
-      class="bg-[#501F9D] w-10 h-10 rounded-full flex items-center justify-center text-white cursor-pointer hover:bg-[#5a28c8]">
-      <mat-icon>attach_file</mat-icon>
+    <!-- Botón de adjuntar -->
+    <label
+      class="bg-[#501F9D] w-10 h-10 rounded-full flex items-center justify-center text-white cursor-pointer hover:bg-[#5a28c8] relative">
+      <input type="file" hidden (change)="sendFile($event)" />
+      <mat-icon *ngIf="!uploading">attach_file</mat-icon>
+      <mat-icon *ngIf="uploading" class="animate-spin absolute">sync</mat-icon>
     </label>
-    <!--input type="file" id="fileInput" class="hidden" (change)="sendFile($event)"-->
 
+    <!-- Botón de enviar -->
     <button class="bg-[#501F9D] w-10 h-10 rounded-full flex items-center justify-center text-white hover:bg-[#5a28c8]"
       (click)="sendMessage()">
       <mat-icon>send</mat-icon>
