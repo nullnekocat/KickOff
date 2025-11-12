@@ -4,7 +4,7 @@ import { EncryptionService } from './encryption.service';
 import { Subject } from 'rxjs';
 import { MediaData } from './message.service';
 import { SupabaseService } from './supabase.service';
-
+import { environment } from '../environments/environment';
 export interface ChatMessage {
     roomId: string;
     senderId: string;
@@ -29,7 +29,7 @@ export class SocketService {
         private encryptionService: EncryptionService,
         private supabaseService: SupabaseService
     ) {
-        this.socket = io('http://localhost:3000', { withCredentials: true });
+        this.socket = io(`${environment.apiUrl}`, { withCredentials: true });
 
         this.socket.on('connect', () => {
             this.socketId = this.socket.id;
@@ -341,4 +341,41 @@ export class SocketService {
     onUserStatusChange(callback: (data: { userId: string, status: number }) => void): void {
         this.socket.on('userStatus', callback);
     }
+
+    // Señalización: preferimos handlers tipados como (...args:any[]) => void
+    onSignaling(event: string, handler: (...args: any[]) => void) {
+        if (this.socket) this.socket.on(event, handler);
+        else console.warn('⚠️ Socket no inicializado al registrar signaling handler', event);
+    }
+
+    emitSignaling(event: string, payload?: any) {
+        if (this.socket) this.socket.emit(event, payload);
+        else console.warn('⚠️ Socket no inicializado al emitir signaling', event);
+    }
+
+    // ---------------- Generic methods ---------------- //
+    public emit(event: string, data?: any) {
+        if (this.socket) {
+            //DebugLog
+            console.log('🔁 [socket.service] emit', event, data && (typeof data === 'object' ? { ...data, sdp: data.sdp ? '[sdp]' : undefined } : data));
+            this.socket.emit(event, data);
+        } else {
+            console.warn('⚠️ Socket no inicializado al intentar emitir', event);
+        }
+    }
+
+    public on(event: string, handler: (...args: any[]) => void) {
+        if (this.socket) {
+            this.socket.on(event, handler);
+        } else {
+            console.warn('⚠️ Socket no inicializado al intentar escuchar', event);
+        }
+    }
+
+    public off(event: string, handler?: (...args: any[]) => void) {
+        if (this.socket) {
+            this.socket.off(event, handler);
+        }
+    }
+
 }

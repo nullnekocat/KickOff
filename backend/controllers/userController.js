@@ -88,7 +88,7 @@ exports.loginUser = async (req, res) => {
         httpOnly: true, //accesible solo desde el server
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
-        maxAge: 1000 * 60 * 60
+        maxAge: 1000 * 60 * 60 * 24 //24h
       })
     
     res.status(200).json({

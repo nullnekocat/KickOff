@@ -31,7 +31,7 @@ export class Menu {
   }
 
   onAbrirModal() {
-    this.abrirModalEvent.emit(); // 🔹 Emite al padre
+    this.abrirModalEvent.emit();
   }
   
 }
