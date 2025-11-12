@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../environments/environment';
 
 export interface MediaData {
     url: string | null;
@@ -21,7 +22,7 @@ export interface Message {
 
 @Injectable({ providedIn: 'root' })
 export class MessageService {
-    private api = 'http://localhost:3000/api/messages';
+    private api = `${environment.apiUrl}/api/messages`;
 
     constructor(private http: HttpClient) { }
 

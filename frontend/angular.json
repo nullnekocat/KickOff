@@ -48,6 +48,12 @@
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true
+            },
+            "ngrok": {
+              "optimization": false,
+              "sourceMap": true,
+              "extractLicenses": false,
+              "outputHashing": "none"
             }
           },
           "defaultConfiguration": "production"
@@ -60,6 +66,9 @@
             },
             "development": {
               "buildTarget": "KickOff:build:development"
+            },
+            "ngrok": {
+              "buildTarget": "KickOff:build:ngrok"
             }
           },
           "defaultConfiguration": "development"

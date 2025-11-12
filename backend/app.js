@@ -22,13 +22,19 @@ app.use(cookieParser());
 
 // CORS settings
 app.use(cors({
-  origin: 'http://localhost:4200',
+  origin: [
+    'https://cecil-untrailed-bifilarly.ngrok-free.dev',
+    'http://localhost:4200'
+  ],
   methods: ['GET', 'POST', 'PUT'],
   credentials: true
 }));
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:4200',
+    origin: [
+      'https://cecil-untrailed-bifilarly.ngrok-free.dev',
+      'http://localhost:4200'
+    ],
     methods: ['GET', 'POST', 'PUT'],
     credentials: true
   }
@@ -80,7 +86,7 @@ io.on('connection', async (socket) => {
   // Registrar socket para este userId
   userSockets[socket.user.id] = socket.id;
 
-  // 🟢 Marcar usuario como online al conectar
+  // Marcar usuario como online al conectar
   try {
     await User.findByIdAndUpdate(userId, { status: 1 });
     console.log(`🟢 ${socket.user.name} está en línea`);
@@ -211,8 +217,35 @@ io.on('connection', async (socket) => {
       }
     }, 1000); // 1 segundo de margen
   });
+
+  // --- SIGNALLING --- //
+  socket.on('webrtc:offer', ({ roomId, sdp, isVideo }) => {
+    console.log(`📡 Oferta WebRTC recibida de ${socket.user.id} para room ${roomId}`);
+    const socketsInRoom = io.sockets.adapter.rooms.get(roomId);
+    console.log(`👥 Usuarios en el room:`, socketsInRoom ? [...socketsInRoom] : 'ninguno');
+
+    socket.to(roomId).emit('webrtc:offer', { from: socket.user.id, sdp, isVideo });
+    console.log(`📤 Oferta reenviada a room ${roomId}`);
+  });
+
+
+  socket.on('webrtc:answer', ({ roomId, sdp }) => {
+    console.log('⬅️ [server] webrtc:answer RECEIVED from', socket.user.id, 'roomId:', roomId);
+    socket.to(roomId).emit('webrtc:answer', { from: socket.user.id, roomId, sdp });
+  });
+
+  socket.on('webrtc:ice-candidate', ({ roomId, candidate }) => {
+    console.log('⬅️ [server] ice-candidate from', socket.user.id, 'roomId:', roomId);
+    socket.to(roomId).emit('webrtc:ice-candidate', { from: socket.user.id, roomId, candidate });
+  });
+
+  socket.on('webrtc:end-call', ({ roomId }) => {
+    console.log('⬅️ [server] end-call from', socket.user.id, 'roomId:', roomId);
+    socket.to(roomId).emit('webrtc:end-call', { from: socket.user.id, roomId });
+  });
+
 });
 
-server.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on http://0.0.0.0:${PORT}`);
 });
