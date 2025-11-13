@@ -54,7 +54,7 @@ export class ChatAbierto implements OnInit, OnDestroy {
     private messageService: MessageService,
     private encryptionService: EncryptionService,
     private webrtcService: WebRTCService
-  ) {}
+  ) { }
 
   async ngOnInit(): Promise<void> {
     // Obtener usuario actual
@@ -107,14 +107,22 @@ export class ChatAbierto implements OnInit, OnDestroy {
       this.messages = [];
       if (!sel) return;
 
-      const newRoom = [this.currentUserId, sel.id].sort().join('_');
+      let newRoom: string;
+      if (sel.type === 'grupo') {
+        newRoom = sel.id; // el _id del grupo
+      } else {
+        newRoom = [this.currentUserId, sel.id].sort().join('_');
+      }
+
       if (newRoom !== this.lastRoomId) {
         this.roomId = newRoom;
         this.loadEncryptionState(newRoom);
         this.lastRoomId = newRoom;
         this.socketService.joinRoom(newRoom);
-        this.socketService.sendPublicKey(this.currentUserId);
-        await this.socketService.ensureRoomKey(newRoom, this.currentUserId, sel.id);
+        if (sel.type === 'privado') {
+          this.socketService.sendPublicKey(this.currentUserId);
+          await this.socketService.ensureRoomKey(newRoom, this.currentUserId, sel.id);
+        }
         await this.loadMessageHistory(newRoom);
       }
     });
@@ -152,7 +160,7 @@ export class ChatAbierto implements OnInit, OnDestroy {
       next: async msgs => {
         const roomKeyB64 = this.socketService.getStoredRoomKeyBase64(roomId);
         this.messages = await Promise.all(msgs.map(async (m) => ({
-          senderName: m.senderId === this.currentUserId ? this.currentUserName : (this.selectedChat?.name || 'Usuario'),
+          senderName: m.senderName || (m.senderId === this.currentUserId ? this.currentUserName : 'Usuario'),
           text: m.isEncrypted && roomKeyB64
             ? await this.socketService.aesDecryptBase64(roomKeyB64, m.text, m.iv || '').catch(() => '[Error]')
             : m.text,
@@ -161,9 +169,11 @@ export class ChatAbierto implements OnInit, OnDestroy {
           isEncrypted: m.isEncrypted,
           media: m.media || null
         })));
+        console.log(this.messages);
         setTimeout(() => this.scrollToBottom(), 200);
       }
     });
+
   }
 
   toggleEncryption() {

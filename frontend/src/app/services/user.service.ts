@@ -10,7 +10,7 @@ import { environment } from '../environments/environment';
 export class UserService {
   private api = `${environment.apiUrl}/api/users`;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   // Obtener todos los usuarios
   getUsers(): Observable<User[]> {
@@ -37,15 +37,15 @@ export class UserService {
     if (!name || !password) {
       throw new Error('Nombre de usuario y contraseña son requeridos');
     }
-    return this.http.post<any>(`${this.api}/login`, { name, password }, {withCredentials: true});
+    return this.http.post<any>(`${this.api}/login`, { name, password }, { withCredentials: true });
   }
 
   logout(): Observable<any> {
     return this.http.post<any>(`${this.api}/logout`, {}, { withCredentials: true });
   }
 
-  // Poner usuario en línea
   setOnline(id: string): Observable<any> {
     return this.http.put(`${this.api}/${id}/online`, {});
   }
+
 }
