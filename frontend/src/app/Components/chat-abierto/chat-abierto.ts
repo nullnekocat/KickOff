@@ -109,7 +109,7 @@ export class ChatAbierto implements OnInit, OnDestroy {
 
       let newRoom: string;
       if (sel.type === 'grupo') {
-        newRoom = sel.id; // el _id del grupo
+        newRoom = sel.id; // _id del grupo
       } else {
         newRoom = [this.currentUserId, sel.id].sort().join('_');
       }

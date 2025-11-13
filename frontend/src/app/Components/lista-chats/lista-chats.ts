@@ -56,7 +56,6 @@ export class ListaChats implements OnInit {
     this.socketService.onNewGroup((group) => {
       console.log('📢 Nuevo grupo recibido por socket:', group);
 
-      // Convertir a estructura Chat y evitar duplicados
       const exists = this.chats.some(c => c.id === group._id);
       if (exists) return;
 
