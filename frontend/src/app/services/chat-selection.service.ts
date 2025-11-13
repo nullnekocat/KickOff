@@ -6,6 +6,8 @@ export interface SelectedChat {
     name: string;
     email?: string;
     status?: number;
+    type?: 'privado' | 'grupo';
+    members?: any[];
 }
 
 @Injectable({ providedIn: 'root' })

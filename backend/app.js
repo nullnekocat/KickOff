@@ -12,7 +12,6 @@ const User = require('./models/User');
 const RoomKeyOffer = require('./models/RoomKeyOffer');
 const Message = require('./models/Message');
 
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 const server = http.createServer(app);
@@ -47,8 +46,13 @@ User.updateMany({ status: 1 }, { $set: { status: 0 } }).then(() => {
 
 const userRoutes = require('./routes/users');
 const messageRoutes = require('./routes/messages');
+const groupRoutes = require('./routes/groups');
+const taskRoutes = require('./routes/tasks');
+
 app.use('/api/users', userRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/groups', groupRoutes);
+app.use('/api/tasks', taskRoutes);
 
 // Endpoints
 app.get('/', (req, res) => {
@@ -78,6 +82,9 @@ io.use((socket, next) => {
 
 const userPublicKeys = {}; // { userId: base64PublicKey }
 const userSockets = {}; // { userId: socketId }
+
+global._io = io;
+global._userSockets = userSockets;
 
 io.on('connection', async (socket) => {
   console.log(`✅ User connected: ${socket.user.name} (${socket.user.id}), socket id: ${socket.id}`);
@@ -179,23 +186,26 @@ io.on('connection', async (socket) => {
         isEncrypted,
         media: media || { url: null, type: null, name: null }
       });
-      await msg.save();
+
+      const saved = await msg.save();
+
+      // Emitir el mensaje guardado (con id, fecha) — así los clientes renderizan lo mismo.
+      io.to(roomId).emit('message', {
+        _id: saved._id,
+        roomId: saved.roomId,
+        senderName: socket.user.name,
+        senderId: socket.user.id,
+        text: saved.text,
+        iv: saved.iv,
+        isEncrypted: saved.isEncrypted,
+        media: saved.media,
+        createdAt: saved.createdAt
+      });
+
     } catch (err) {
       console.error('❌ Error guardando mensaje en MongoDB:', err);
     }
-
-    io.to(roomId).emit('message', {
-      roomId,
-      senderName: socket.user.name,
-      senderId: socket.user.id,
-      text,
-      iv,
-      isEncrypted,
-      media: media || null
-    });
   });
-
-  socket.on('message', (msg) => console.log(msg));
 
   socket.on('disconnect', (reason) => {
     delete userSockets[socket.user.id];

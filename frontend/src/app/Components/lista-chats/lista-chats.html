@@ -1,92 +1,94 @@
 <div class="flex flex-col h-full w-full bg-[#2C2336] text-white">
-  
+
   <div class="flex pt-6 p-4 pb-2 bg-[#2C2336]">
-    <button 
-      class="flex-1 py-2 mx-1 rounded-md transition"
+    <button class="flex-1 py-2 mx-1 rounded-md transition"
       [ngClass]="selectedTab === 'privados' ? 'bg-[#59496b]' : 'bg-[#1e1725] hover:bg-[#1e1725]'"
       (click)="selectedTab = 'privados'">
       Privados
     </button>
-    <button 
-      class="flex-1 py-2 mx-1 rounded-md transition"
+    <button class="flex-1 py-2 mx-1 rounded-md transition"
       [ngClass]="selectedTab === 'grupos' ? 'bg-[#59496b]' : 'bg-[#1e1725] hover:bg-[#1e1725]'"
       (click)="selectedTab = 'grupos'">
       Grupos
     </button>
-    <button 
-      class="ml-2 px-3 rounded-md bg-[#1e1725] hover:bg-[#59496b] transition"
-      (click)="crearGrupo()">
+    <button class="ml-2 px-3 rounded-md bg-[#1e1725] hover:bg-[#59496b] transition" (click)="crearGrupo()">
       +
     </button>
   </div>
 
   <!-- Barra de búsqueda simple -->
   <div class="p-2 bg-[#2C2336]">
-    <input type="text" placeholder="Buscar..." 
-          class="w-full py-2 px-4 rounded-full bg-[#1e1725] text-white placeholder-gray-400 focus:outline-none" />
+    <input type="text" placeholder="Buscar..."
+      class="w-full py-2 px-4 rounded-full bg-[#1e1725] text-white placeholder-gray-400 focus:outline-none" />
   </div>
 
   <!-- Lista de chats -->
-<div class="flex-1 overflow-y-auto p-2">
-  <div *ngIf="loading" class="text-center text-gray-400 py-6">
-    Cargando usuarios...
-  </div>
+  <div class="flex-1 overflow-y-auto p-2">
+    <div *ngIf="loading" class="text-center text-gray-400 py-6">
+      Cargando usuarios...
+    </div>
 
-  <ul *ngIf="!loading && chats.length > 0" class="space-y-2">
-    <li
-      *ngFor="let user of chatsFiltrados"
-      (click)="openChat(user)"
-      class="p-3 rounded-lg bg-[#21182B] hover:bg-[#5B4C73] cursor-pointer transition"
-      [ngClass]="chatSelection.getSelected()?.id === user.id ? 'ring-2 ring-[#6805F2]' : ''"
-    >
-      <div class="flex items-center justify-between">
-        <span class="font-semibold">{{ user.name }}</span>
-        <span class="text-xs text-gray-300">
-          {{ user.status === 1 ? '🟢 Online' : '⚫ Offline' }}
+    <ul *ngIf="!loading && chats.length > 0" class="space-y-2">
+      <li *ngFor="let user of chatsFiltrados" (click)="openChat(user)"
+        class="p-3 rounded-lg bg-[#21182B] hover:bg-[#5B4C73] cursor-pointer transition"
+        [ngClass]="chatSelection.getSelected()?.id === user.id ? 'ring-2 ring-[#6805F2]' : ''">
+        <div class="flex items-center justify-between">
+          <span class="font-semibold">{{ user.name }}</span>
+          <span *ngIf="user.type === 'privado'" class="text-xs text-gray-300">
+            {{ user.status === 1 ? '🟢 Online' : '⚫ Offline' }}
+          </span>
+        </div>
+        <span class="text-sm text-gray-300 truncate">
+          <ng-container *ngIf="user.type === 'privado'">
+            {{ user.email }}
+          </ng-container>
+          <ng-container *ngIf="user.type === 'grupo'">
+            {{ user.membersCount }} miembros
+          </ng-container>
         </span>
-      </div>
-      <p class="text-sm text-gray-300 truncate">{{ user.email }}</p>
-    </li>
-  </ul>
+      </li>
+    </ul>
 
-  <div *ngIf="!loading && chats.length === 0" class="text-center text-gray-400 py-6">
-    No hay otros usuarios disponibles.
+    <div *ngIf="!loading && chats.length === 0" class="text-center text-gray-400 py-6">
+      No hay otros usuarios disponibles.
+    </div>
   </div>
-</div>
 
-<!-- modal para crear grupo nuevo -->
-<div *ngIf="showModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-  <div class="bg-[#42354f] p-6 rounded-2xl shadow-lg w-96 text-white">
-    <h2 class="text-xl font-semibold mb-4">Crear nuevo grupo</h2>
+  <!-- modal para crear grupo nuevo -->
+  <div *ngIf="showModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div class="bg-[#42354f] p-6 rounded-2xl shadow-lg w-96 text-white">
+      <h2 class="text-xl font-semibold mb-4">Crear nuevo grupo</h2>
 
-    <input type="text" placeholder="Nombre del grupo" 
-          class="w-full mb-4 py-2 px-3 rounded-md bg-[#21182B] text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2C2336]" />
+      <!-- campo para el nombre del grupo -->
+      <input type="text" [(ngModel)]="nombreGrupo" placeholder="Nombre del grupo"
+        class="w-full mb-4 py-2 px-3 rounded-md bg-[#21182B] text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2C2336]" />
 
-    <input type="text" [(ngModel)]="filtroContactos" placeholder="Buscar contactos..." 
-          class="w-full mb-3 py-2 px-3 rounded-md bg-[#21182B] text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2C2336]" />
+      <!-- campo para buscar contactos -->
+      <input type="text" [(ngModel)]="filtroContactos" placeholder="Buscar contactos..."
+        class="w-full mb-3 py-2 px-3 rounded-md bg-[#21182B] text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2C2336]" />
 
-    <div class="max-h-40 overflow-y-auto mb-4">
-      <ul class="space-y-2">
-        <li *ngFor="let contacto of contactosFiltrados" 
-            (click)="toggleSeleccion(contacto)"
+      <!-- lista de contactos -->
+      <div class="max-h-40 overflow-y-auto mb-4">
+        <ul class="space-y-2">
+          <li *ngFor="let contacto of contactosFiltrados" (click)="toggleSeleccion(contacto._id)"
             class="flex items-center justify-between p-2 rounded-md cursor-pointer transition"
-            [ngClass]="seleccionados.includes(contacto) ? 'bg-[#21182B]' : 'bg-[#5B4C73] hover:bg-[#5B4C73]'">
-          
-          <span>{{ contacto }}</span>
-          <span *ngIf="seleccionados.includes(contacto)" class="text-sm text-green-300">✔</span>
-        </li>
-      </ul>
-    </div>
+            [ngClass]="seleccionados.includes(contacto._id) ? 'bg-[#21182B]' : 'bg-[#5B4C73] hover:bg-[#5B4C73]'">
 
-    <div class="flex justify-end gap-3">
-      <button (click)="closeModal()" 
-              class="px-4 py-2 rounded-md bg-red-700 hover:bg-red-800 transition">
-        Cancelar
-      </button>
-      <button (click)="crearGrupoConfirmado()" 
-              class="px-4 py-2 rounded-md bg-[#6805F2] hover:bg-[#4a20a3] transition">
-        Crear
-      </button>
+            <span>{{ contacto.name }}</span>
+            <span *ngIf="seleccionados.includes(contacto._id)" class="text-sm text-green-300">✔</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- botones -->
+      <div class="flex justify-end gap-3">
+        <button (click)="closeModal()" class="px-4 py-2 rounded-md bg-red-700 hover:bg-red-800 transition">
+          Cancelar
+        </button>
+        <button (click)="crearGrupoConfirmado()"
+          class="px-4 py-2 rounded-md bg-[#6805F2] hover:bg-[#4a20a3] transition">
+          Crear
+        </button>
+      </div>
     </div>
   </div>
-</div> 

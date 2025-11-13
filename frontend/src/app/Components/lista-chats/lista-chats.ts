@@ -5,12 +5,14 @@ import { Router } from '@angular/router';
 import { SocketService } from '../../services/socket.service';
 import { ChatSelectionService } from '../../services/chat-selection.service';
 import { UserService } from '../../services/user.service';
+import { GroupService } from '../../services/group.service';
 
 interface Chat {
   id: string;
   name: string;
-  email: string;
-  status: number;
+  email?: string; // private
+  membersCount?: number; // group
+  status?: number;
   type: 'privado' | 'grupo';
 }
 
@@ -24,42 +26,58 @@ interface Chat {
 export class ListaChats implements OnInit {
   selectedTab: 'privados' | 'grupos' = 'privados';
   chats: Chat[] = [];
-  contactos: string[] = [];
+  contactos: any[] = [];
+  grupos: Chat[] = [];
 
   showModal = false;
   loading = false;
   filtroContactos = '';
   seleccionados: string[] = [];
+  nombreGrupo = '';
 
-  constructor(private userService: UserService,
-            public chatSelection: ChatSelectionService,
-            private socketService: SocketService,
-            private router: Router) {}
+  constructor(
+    private userService: UserService,
+    private groupService: GroupService,
+    public chatSelection: ChatSelectionService,
+    private socketService: SocketService,
+    private router: Router
+  ) { }
 
   ngOnInit() {
     this.loadUsers();
+    this.loadGroups();
 
-    // Actualiza status en tiempo real
+    // Actualiza estado en tiempo real
     this.socketService.onUserStatusChange(({ userId, status }) => {
       const user = this.chats.find(u => u.id === userId);
-      if (user) {
-        user.status = status;
-      }
+      if (user) user.status = status;
+    });
+
+    this.socketService.onNewGroup((group) => {
+      console.log('📢 Nuevo grupo recibido por socket:', group);
+
+      // Convertir a estructura Chat y evitar duplicados
+      const exists = this.chats.some(c => c.id === group._id);
+      if (exists) return;
+
+      const mapped = {
+        id: group._id,
+        name: group.name,
+        members: group.members || [],
+        membersCount: group.members?.length || 0,
+        status: 1,
+        type: 'grupo' as const
+      };
+
+      this.grupos = [...this.grupos, mapped];
     });
   }
 
+  // --- PRIVADOS --- //
   loadUsers() {
     this.loading = true;
     this.userService.getAllOtherUsers().subscribe({
       next: (users) => {
-        
-        /*
-        console.log('📥 Respuesta del backend:', users);
-        if (!users || users.length === 0) {
-          console.warn('⚠️ No se recibieron usuarios o la lista está vacía.');
-        }
-        */
-
         this.chats = users.map(u => ({
           id: u._id,
           name: u.name,
@@ -67,48 +85,68 @@ export class ListaChats implements OnInit {
           status: u.status,
           type: 'privado',
         }));
-        this.contactos = users.map(u => u.name);
+        this.contactos = users;
+      },
+      error: (err) => console.error('❌ Error cargando usuarios:', err),
+      complete: () => this.loading = false
+    });
+  }
+
+  // --- GRUPOS --- //
+  loadGroups() {
+    this.groupService.getMyGroups().subscribe({
+      next: (groups) => {
+        console.log('📦 Grupos cargados:', groups);
+        this.grupos = groups.map(g => ({
+          id: g._id,
+          name: g.name,
+          members: g.members || [],
+          membersCount: (g.members && g.members.length) || 0,
+          status: 1,
+          type: 'grupo' as const
+        }));
       },
       error: (err) => {
-        console.error('❌ Error cargando usuarios:', err);
-      },
-      complete:() => this.loading = false
+        console.error('❌ Error cargando grupos:', err);
+      }
     });
   }
 
   get chatsFiltrados() {
-    return this.chats.filter(c => 
-      this.selectedTab === 'privados' ? c.type === 'privado' : c.type === 'grupo'
-    );
+    return this.selectedTab === 'privados' ? this.chats : this.grupos;
   }
 
   selectTab(tab: 'privados' | 'grupos') {
     this.selectedTab = tab;
   }
 
-  
-  openChat(chat: Chat) {
+  // --- CHAT --- //
+  openChat(chat: any) {
     console.log('🟢 Chat clickeado:', chat);
-    this.chatSelection.setSelected({
-      id: String(chat.id),
-      name: chat.name,
-      email: chat.email,
-      status: chat.status
-    });
-    console.log('📤 Enviado al servicio:', this.chatSelection.getSelected());
+
+    if (chat.type === 'grupo') {
+      this.chatSelection.setSelected({
+        id: String(chat.id),
+        name: chat.name,
+        members: chat.members || [],
+        status: chat.status || 0,
+        type: 'grupo'
+      } as any);
+    } else {
+      this.chatSelection.setSelected({
+        id: String(chat.id),
+        name: chat.name,
+        email: chat.email || '',
+        status: chat.status || 0,
+        type: 'privado'
+      });
+    }
   }
 
-  //modal 
-  /*
-  showModal = false;
-  filtroContactos = '';
-  contactos: string[] = ['Juan Pérez', 'María López', 'Carlos Sánchez', 'Ana Torres', 'Luis Gómez'];
-  seleccionados: string[] = [];
-  */
-
+  // --- MODAL CREAR GRUPO --- //
   get contactosFiltrados() {
-    return this.contactos.filter(c => 
-      c.toLowerCase().includes(this.filtroContactos.toLowerCase())
+    return this.contactos.filter(c =>
+      c.name.toLowerCase().includes(this.filtroContactos.toLowerCase())
     );
   }
 
@@ -120,20 +158,43 @@ export class ListaChats implements OnInit {
     this.showModal = false;
     this.seleccionados = [];
     this.filtroContactos = '';
+    this.nombreGrupo = '';
   }
 
-  toggleSeleccion(contacto: string) {
-    if (this.seleccionados.includes(contacto)) {
-      this.seleccionados = this.seleccionados.filter(c => c !== contacto);
+  toggleSeleccion(contactoId: string) {
+    if (this.seleccionados.includes(contactoId)) {
+      this.seleccionados = this.seleccionados.filter(c => c !== contactoId);
     } else {
-      this.seleccionados.push(contacto);
+      this.seleccionados.push(contactoId);
     }
   }
 
   crearGrupoConfirmado() {
-    console.log("Grupo creado con:", this.seleccionados);
-    this.showModal = false;
-    this.seleccionados = [];
-    this.filtroContactos = '';
+    const nombreGrupoInput = (document.querySelector('input[placeholder="Nombre del grupo"]') as HTMLInputElement)?.value.trim();
+    if (!nombreGrupoInput) {
+      alert('Por favor ingresa un nombre para el grupo');
+      return;
+    }
+
+    if (this.seleccionados.length < 2) {
+      alert('Selecciona al menos 2 contactos para crear un grupo');
+      return;
+    }
+
+    console.log('📤 Creando grupo con:', this.seleccionados);
+
+    this.groupService.createGroup(nombreGrupoInput, this.seleccionados).subscribe({
+      next: (group) => {
+        console.log('✅ Grupo creado:', group);
+
+        this.closeModal();
+        this.loadGroups();
+      },
+      error: (err) => {
+        console.error('❌ Error al crear grupo:', err);
+        alert('Error al crear grupo');
+      }
+    });
   }
+
 }

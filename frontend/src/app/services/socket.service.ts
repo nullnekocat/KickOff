@@ -89,6 +89,15 @@ export class SocketService {
         console.log('📤 Uniendo al room:', roomId);
     }
 
+    joinGroup(groupId: string) {
+        this.socket.emit('joinRoom', { roomId: groupId });
+        console.log('👥 Unido al grupo:', groupId);
+    }
+
+    onNewGroup(callback: (group: any) => void) {
+        this.socket.on('grupo:nuevo', callback);
+    }
+
     // ---------------- AES room-key management ---------------- //
     async generateAndStoreRoomKey(roomId: string): Promise<string> {
         const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
