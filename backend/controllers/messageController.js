@@ -29,19 +29,9 @@ exports.getMessagesByRoom = async (req, res) => {
     try {
         const roomId = req.params.roomId;
         const messages = await Message.find({ roomId }).sort({ createdAt: 1 });
-
-        // Enriquecer mensajes con nombres reales
-        const messagesWithNames = await Promise.all(messages.map(async (m) => {
-            const user = await User.findById(m.senderId).select('name');
-            return {
-                ...m.toObject(),
-                senderName: user ? user.name : 'Usuario desconocido'
-            };
-        }));
-
-        res.json(messagesWithNames);
-    } catch (err) {
-        console.error('❌ Error al obtener mensajes:', err);
-        res.status(500).json({ error: 'Error al obtener mensajes' });
+        res.status(200).json(messages);
+    } catch (error) {
+        console.error('❌ Error al obtener mensajes:', error);
+        res.status(500).json({ message: 'Error al obtener mensajes', error });
     }
 };
