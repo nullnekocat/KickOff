@@ -44,7 +44,7 @@ exports.createGroup = async (req, res) => {
             console.warn('⚠️ No se pudo emitir grupo:nuevo:', emitErr);
         }
 
-        await group.populate('members', 'fullname email');
+        await group.populate('members', 'name email');
         res.status(201).json(group);
     } catch (err) {
         console.error('❌ Error al crear grupo:', err);
@@ -58,10 +58,10 @@ exports.getMyGroups = async (req, res) => {
         const userId = req.user.id;
 
         const groups = await Group.find({ members: userId })
-            .populate('members', 'fullname email')
+            .populate('members', 'name email')
             .populate({
                 path: 'tasks',
-                populate: { path: 'inChargeId', select: 'fullname email' }
+                populate: { path: 'inChargeId', select: 'name email' }
             })
             .exec();
 

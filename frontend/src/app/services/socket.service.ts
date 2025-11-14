@@ -136,7 +136,6 @@ export class SocketService {
     }
 
     // ---------------- Room key exchange (RSA to share AES key) ---------------- //
-    // helpers para esperar (simple polling/timeout)
     private waitForPublicKey(userId: string, timeout = 7000): Promise<string | null> {
         return new Promise(resolve => {
             const existing = this.getPublicKey(userId);
@@ -163,12 +162,11 @@ export class SocketService {
         });
     }
 
-    // ensureRoomKey: genera y ofrece (si corresponde) y espera ack
     async ensureRoomKey(roomId: string, myUserId: string, otherUserId: string) {
         const existing = this.getStoredRoomKeyBase64(roomId);
         if (existing) return;
 
-        // publicar mi clave pública en caso de que el otro la necesite
+        // publicar clave pública
         const myPub = this.encryptionService.getPublicKey();
         if (myPub) this.socket.emit('publicKey', { userId: myUserId, publicKey: myPub });
 
@@ -351,7 +349,32 @@ export class SocketService {
         this.socket.on('userStatus', callback);
     }
 
-    // Señalización: preferimos handlers tipados como (...args:any[]) => void
+    // ---------------- Tasks ---------------- //
+    onNewTask(callback: (task: any) => void) {
+        this.socket.on('task:new', callback);
+    }
+
+    onToggleTask(callback: (task: any) => void) {
+        this.socket.on('task:toggle', callback);
+    }
+
+    onDeleteTask(callback: (taskId: string) => void) {
+        this.socket.on('task:delete', callback);
+    }
+
+    createTaskSocket(task: any) {
+        this.socket.emit('task:new', task);
+    }
+
+    toggleTaskSocket(task: any) {
+        this.socket.emit('task:toggle', task);
+    }
+
+    deleteTaskSocket(taskId: string) {
+        this.socket.emit('task:delete', taskId);
+    }
+
+    // ---------------- WebRTC calls ---------------- //
     onSignaling(event: string, handler: (...args: any[]) => void) {
         if (this.socket) this.socket.on(event, handler);
         else console.warn('⚠️ Socket no inicializado al registrar signaling handler', event);

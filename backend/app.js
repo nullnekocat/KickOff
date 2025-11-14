@@ -23,7 +23,8 @@ app.use(cookieParser());
 app.use(cors({
   origin: [
     'https://cecil-untrailed-bifilarly.ngrok-free.dev',
-    'http://localhost:4200'
+    'http://localhost:4200',
+    'http://0.0.0.0:4200'
   ],
   methods: ['GET', 'POST', 'PUT'],
   credentials: true
@@ -32,7 +33,8 @@ const io = new Server(server, {
   cors: {
     origin: [
       'https://cecil-untrailed-bifilarly.ngrok-free.dev',
-      'http://localhost:4200'
+      'http://localhost:4200',
+      'http://0.0.0.0:4200'
     ],
     methods: ['GET', 'POST', 'PUT'],
     credentials: true
