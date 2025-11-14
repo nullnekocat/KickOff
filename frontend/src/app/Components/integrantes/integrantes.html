@@ -3,8 +3,8 @@
 
   <ul class="divide-y divide-gray-200">
     <li *ngFor="let integrante of integrantes" class="py-3">
-      <p class="text-lg font-semibold text-gray-800">{{ integrante.nombre }}</p>
-      <p class="text-sm text-gray-500">{{ integrante.correo }}</p>
+      <p class="text-lg font-semibold text-gray-800">{{ integrante.name || integrante.fullname || 'Usuario' }}</p>
+      <p class="text-sm text-gray-500">{{ integrante.email || integrante.correo || '' }}</p>
     </li>
   </ul>
 </div>

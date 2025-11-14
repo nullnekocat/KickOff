@@ -33,6 +33,8 @@
 /backend/yarn-error.log
 /backend/.env
 /frontend/src/app/environments/environment.ts
+/frontend/src/app/environments/environment.test.ts
+/frontend/src/app/environments/environment.ngrok.ts
 /frontend/src/app/environments/environment.prod.ts
 
 # ============================================================

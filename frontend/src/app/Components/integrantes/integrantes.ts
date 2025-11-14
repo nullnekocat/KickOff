@@ -1,20 +1,32 @@
-import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
-
-interface Integrante {
-  nombre: string;
-  correo: string;
-}
+import { CommonModule } from '@angular/common';
+import { ChatSelectionService } from '../../services/chat-selection.service';
 
 @Component({
   selector: 'app-integrantes',
+  standalone: true,
   imports: [CommonModule],
   templateUrl: './integrantes.html',
   styleUrl: './integrantes.css'
 })
 export class Integrantes {
-  integrantes: Integrante[] = [
-    { nombre: 'Carlos Sánchez', correo: 'carlos@gmail.com' },
-    { nombre: 'Ana Torres', correo: 'ana@gmail.com' }
-  ];
+
+  integrantes: any[] = [];
+  groupId = '';
+
+  constructor(private chatSelection: ChatSelectionService) {}
+
+  ngOnInit() {
+    this.chatSelection.selected$.subscribe(chat => {
+      if (!chat || chat.type !== 'grupo') {
+        this.integrantes = [];
+        this.groupId = '';
+        return;
+      }
+
+      this.groupId = chat.id;
+      this.integrantes = chat.members || [];
+    });
+  }
+
 }

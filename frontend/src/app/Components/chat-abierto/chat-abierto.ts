@@ -32,6 +32,8 @@ export class ChatAbierto implements OnInit, OnDestroy {
 
   currentUserId = '';
   currentUserName = '';
+  otherUser: any = null;
+  integrantes: any[] = [];
   uploading = false;
 
   // Estados de llamada
@@ -107,6 +109,14 @@ export class ChatAbierto implements OnInit, OnDestroy {
       this.messages = [];
       if (!sel) return;
 
+      this.integrantes = sel?.members || [];
+
+      if (sel.type === 'privado') {
+        this.otherUser = (sel.members && sel.members.length) ? sel.members[0] : null;
+      } else {
+        this.otherUser = null;
+      }
+
       let newRoom: string;
       if (sel.type === 'grupo') {
         newRoom = sel.id; // _id del grupo
@@ -160,7 +170,7 @@ export class ChatAbierto implements OnInit, OnDestroy {
       next: async msgs => {
         const roomKeyB64 = this.socketService.getStoredRoomKeyBase64(roomId);
         this.messages = await Promise.all(msgs.map(async (m) => ({
-          senderName: m.senderName || (m.senderId === this.currentUserId ? this.currentUserName : 'Usuario'),
+          senderName: this.resolveSenderName(m.senderId),
           text: m.isEncrypted && roomKeyB64
             ? await this.socketService.aesDecryptBase64(roomKeyB64, m.text, m.iv || '').catch(() => '[Error]')
             : m.text,
@@ -174,6 +184,21 @@ export class ChatAbierto implements OnInit, OnDestroy {
       }
     });
 
+  }
+  private resolveSenderName(senderId: any): string {
+    const sid = String(senderId);
+    const me = String(this.currentUserId);
+
+    if (sid === me) return this.currentUserName;
+
+    // Privado: usamos otherUser si existe
+    if (this.selectedChat?.type === 'privado') {
+      return this.otherUser?.name || 'Usuario';
+    }
+
+    // Grupo: buscar entre integrantes (strings)
+    const found = this.integrantes?.find(m => String(m._id) === sid);
+    return found ? (found.name || found.fullname || 'Usuario') : 'Usuario';
   }
 
   toggleEncryption() {

@@ -132,12 +132,15 @@ export class ListaChats implements OnInit {
         type: 'grupo'
       } as any);
     } else {
+      const other = this.contactos.find(u => String(u._id) === String(chat.id)) || null;
+
       this.chatSelection.setSelected({
         id: String(chat.id),
         name: chat.name,
         email: chat.email || '',
         status: chat.status || 0,
-        type: 'privado'
+        type: 'privado',
+        members: other ? [other] : []
       });
     }
   }

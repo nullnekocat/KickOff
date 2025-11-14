@@ -1,24 +1,56 @@
-<div class="bg-white shadow-md rounded-lg p-4 w-full max-w-screen mx-auto">
-  <h2 class="text-xl font-bold text-[#330685] mb-4 flex justify-between items-center">
-    Tareas
-    
-    <button (click)="agregarTarea()" 
-            class=" text-purple-950 ">
+<div class="bg-white shadow-md rounded-lg p-4 w-full">
+
+  <div class="flex justify-between items-center mb-3">
+    <h2 class="text-xl font-bold text-[#330685]">Tareas</h2>
+
+    <button (click)="openModal()" class="text-purple-900">
       <mat-icon>add</mat-icon>
     </button>
-  </h2>
+  </div>
 
   <ul class="divide-y divide-gray-200">
-    <li *ngFor="let tarea of tareas; let i = index" class="py-3 flex items-center">
-      <input type="checkbox" 
-             [(ngModel)]="tarea.completada" 
-             class="mr-3 w-5 h-5 text-[#330685] rounded focus:ring-[#4b0da8]">
-      
-      <p class="text-lg font-semibold text-gray-800"
-         [class.line-through]="tarea.completada"
-         [class.text-gray-400]="tarea.completada">
-        {{ tarea.nombre }}
-      </p>
+    <li *ngFor="let t of tareas" class="py-3 flex justify-between items-center">
+
+      <!-- Checkbox solo habilitado si el usuario es el asignado -->
+      <input 
+        type="checkbox"
+        [disabled]="t.inChargeId._id !== currentUserId"
+        [checked]="t.completed"
+        (change)="toggleCompleted(t)"
+        class="mr-3 w-5 h-5 text-[#330685] rounded"
+      >
+
+      <div class="flex flex-col flex-1">
+        <p [class.line-through]="t.completed">{{ t.text }}</p>
+        <small class="text-gray-500">Asignado a: {{ t.inChargeId.name }}</small>
+      </div>
+
+      <button class="text-red-600" (click)="deleteTask(t)">
+        <mat-icon>delete</mat-icon>
+      </button>
+
     </li>
   </ul>
+</div>
+
+<!-- MODAL -->
+<div *ngIf="showModal" class="fixed inset-0 bg-black/50 flex items-center justify-center">
+  <div class="bg-white p-5 rounded shadow w-80">
+
+    <h3 class="text-lg font-bold mb-3">Nueva tarea</h3>
+
+    <input type="text" [(ngModel)]="newText"
+      placeholder="Descripción" class="w-full mb-3 px-3 py-2 border rounded">
+
+    <select [(ngModel)]="selectedUser" class="w-full mb-4 px-3 py-2 border rounded">
+      <option value="">Asignar a...</option>
+      <option *ngFor="let m of members" [value]="m._id">{{ m.name }}</option>
+    </select>
+
+    <div class="flex justify-end gap-2">
+      <button (click)="showModal=false" class="px-3 py-2 bg-gray-300 rounded">Cancelar</button>
+      <button (click)="createTask()" class="px-3 py-2 bg-purple-700 text-white rounded">Crear</button>
+    </div>
+
+  </div>
 </div>
