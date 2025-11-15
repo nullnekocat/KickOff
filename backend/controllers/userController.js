@@ -150,6 +150,15 @@ exports.adjustPoints = async (req, res) => {
     user.points = (user.points || 0) + delta;
     await user.save();
 
+    // Emit real-time update so ranking and other clients can refresh live
+    try {
+      if (global._io) {
+        global._io.emit('user:points-updated', { userId: user._id, points: user.points, dailyStreak: user.dailyStreak });
+      }
+    } catch (e) {
+      console.warn('Could not emit socket event user:points-updated', e);
+    }
+
     res.json({ points: user.points });
   } catch (err) {
     console.error('❌ Error al ajustar puntos:', err);
@@ -159,9 +168,10 @@ exports.adjustPoints = async (req, res) => {
 
 exports.getAllOtherUsers = async (req, res) => {
   try {
-    const currentUserId = req.user.id; // <-- lo obtienes del JWT
-    const users = await User.find({ _id: { $ne: currentUserId } })
-      .select('_id name email status'); // ajusta los campos a tu modelo
+    // Return all users with points and dailyStreak, sorted descending by points
+    const users = await User.find({})
+      .select('_id name points dailyStreak')
+      .sort({ points: -1 });
 
     res.json(users);
   } catch (error) {
