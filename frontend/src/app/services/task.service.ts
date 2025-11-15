@@ -39,4 +39,19 @@ export class TaskService {
         );
     }
 
+    hideTask(taskId: string, hidden: boolean) {
+        return this.http.put(
+            `${this.api}/${taskId}/hide`,
+            { hidden },
+            { withCredentials: true }
+        );
+    }
+
+    getHiddenTasks(groupId: string) {
+        return this.http.get(
+            `${this.api}/${groupId}/hidden`,
+            { withCredentials: true }
+        );
+    }
+
 }

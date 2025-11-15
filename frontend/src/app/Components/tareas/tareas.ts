@@ -19,10 +19,12 @@ export class Tareas {
   members: any[] = [];
   groupId = '';
   currentUserId = '';
+  showHidden = false;
 
   showModal = false;
   newText = '';
   selectedUser = '';
+  private cachedVisibleTareas: any[] = [];
 
   constructor(
     private taskService: TaskService,
@@ -31,7 +33,8 @@ export class Tareas {
   ) { }
 
   ngOnInit() {
-    this.currentUserId = localStorage.getItem('userId') || '';
+    this.currentUserId = localStorage.getItem('currentUserId') || '';
+    //console.log(this.currentUserId);
 
     this.chatSelection.selected$.subscribe(chat => {
       if (!chat || chat.type !== 'grupo') {
@@ -43,7 +46,6 @@ export class Tareas {
 
       this.groupId = chat.id;
       this.members = chat.members || [];
-
       this.loadTasks();
     });
 
@@ -51,6 +53,27 @@ export class Tareas {
     this.socketService.onNewTask(task => {
       if (task.groupId === this.groupId) {
         this.tareas.push(task);
+      }
+    });
+
+    this.socketService.onHideTask((task: any) => {
+      if (task.groupId !== this.groupId) return;
+
+      if (task.hidden) {
+        this.tareas = this.tareas.filter(t => t._id !== task._id);
+        this.cachedVisibleTareas = this.cachedVisibleTareas.filter(t => t._id !== task._id);
+      } else {
+        if (this.showHidden) {
+          this.tareas = this.tareas.filter(t => t._id !== task._id);
+        }
+
+        if (!this.cachedVisibleTareas.some((t: any) => t._id === task._id)) {
+          this.cachedVisibleTareas.push(task);
+        }
+
+        if (!this.showHidden) {
+          this.tareas.push(task);
+        }
       }
     });
 
@@ -64,10 +87,24 @@ export class Tareas {
     });
   }
 
+  isAssignedToCurrentUser(inChargeId: string): boolean {
+    return inChargeId === this.currentUserId;  
+  }
+
   loadTasks() {
     if (!this.groupId) return;
 
     this.taskService.getTasks(this.groupId).subscribe({
+      next: (tasks: any) => {
+        this.tareas = tasks;
+        this.cachedVisibleTareas = [...tasks];
+      }
+    });
+  }
+
+  loadHiddenTasks() {
+    if (!this.groupId) return;
+    this.taskService.getHiddenTasks(this.groupId).subscribe({
       next: (tasks: any) => this.tareas = tasks
     });
   }
@@ -84,9 +121,43 @@ export class Tareas {
     this.taskService.createTask(this.newText, this.selectedUser, this.groupId)
       .subscribe((task: any) => {
         this.showModal = false;
+        // optimistic
         this.tareas.push(task);
+        if (!this.showHidden) this.cachedVisibleTareas.push(task);
         this.socketService.createTaskSocket(task);
       });
+  }
+
+  // Ocultar una tarea (no borrarla)
+  hideTask(task: any) {
+    const shouldHide = true;
+    this.taskService.hideTask(task._id, shouldHide).subscribe((updated: any) => {
+      this.tareas = this.tareas.filter(t => t._id !== updated._id);
+      this.cachedVisibleTareas = this.cachedVisibleTareas.filter(t => t._id !== updated._id);
+      // optimistic
+      this.socketService.hideTaskSocket(updated);
+    });
+  }
+
+  // Desocultar una tarea
+  unhideTask(task: any) {
+    const shouldHide = false;
+    this.taskService.hideTask(task._id, shouldHide).subscribe((updated: any) => {
+      if (this.showHidden) this.tareas = this.tareas.filter(t => t._id !== updated._id);
+
+      if (!this.cachedVisibleTareas.some((t: any) => t._id === updated._id)) {
+        this.cachedVisibleTareas.push(updated);
+      }
+      if (!this.showHidden) this.tareas.push(updated);
+
+      this.socketService.hideTaskSocket(updated);
+    });
+  }
+
+  toggleShowHidden() {
+    this.showHidden = !this.showHidden;
+    if (this.showHidden) this.loadHiddenTasks();
+    else this.loadTasks();
   }
 
   toggleCompleted(task: any) {
@@ -101,6 +172,8 @@ export class Tareas {
   }
 
   deleteTask(task: any) {
+    // Only allow deletion from the hidden list in UI
+    if (!this.showHidden) return;
     this.taskService.deleteTask(task._id).subscribe(() => {
       this.tareas = this.tareas.filter(t => t._id !== task._id);
       this.socketService.deleteTaskSocket(task._id);

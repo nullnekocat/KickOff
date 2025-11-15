@@ -2,10 +2,14 @@
 
   <div class="flex justify-between items-center mb-3">
     <h2 class="text-xl font-bold text-[#330685]">Tareas</h2>
-
-    <button (click)="openModal()" class="text-purple-900">
-      <mat-icon>add</mat-icon>
-    </button>
+    <div class="flex items-center gap-2">
+      <button (click)="openModal()" class="text-purple-900">
+        <mat-icon>add</mat-icon>
+      </button>
+      <button (click)="toggleShowHidden()" class="text-gray-700">
+        <mat-icon>{{ showHidden ? 'visibility_off' : 'visibility' }}</mat-icon>
+      </button>
+    </div>
   </div>
 
   <ul class="divide-y divide-gray-200">
@@ -14,7 +18,7 @@
       <!-- Checkbox solo habilitado si el usuario es el asignado -->
       <input 
         type="checkbox"
-        [disabled]="t.inChargeId._id !== currentUserId"
+        [disabled]="!isAssignedToCurrentUser(t.inChargeId._id)"
         [checked]="t.completed"
         (change)="toggleCompleted(t)"
         class="mr-3 w-5 h-5 text-[#330685] rounded"
@@ -25,9 +29,21 @@
         <small class="text-gray-500">Asignado a: {{ t.inChargeId.name }}</small>
       </div>
 
-      <button class="text-red-600" (click)="deleteTask(t)">
-        <mat-icon>delete</mat-icon>
-      </button>
+      <div class="flex items-center gap-2">
+        <!-- Cuando estamos viendo tareas visibles: 'ocultar' -->
+        <button *ngIf="!showHidden" class="text-yellow-600" (click)="hideTask(t)" title="Ocultar tarea">
+          <mat-icon>visibility_off</mat-icon>
+        </button>
+
+        <!-- Cuando estamos viendo tareas ocultas: 'mostrar' y 'borrar' -->
+        <button *ngIf="showHidden" class="text-green-600" (click)="unhideTask(t)" title="Mostrar tarea">
+          <mat-icon>visibility</mat-icon>
+        </button>
+
+        <button *ngIf="showHidden" class="text-red-600" (click)="deleteTask(t)">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </div>
 
     </li>
   </ul>

@@ -59,6 +59,7 @@
 !.vscode/launch.json
 !.vscode/extensions.json
 .history/
+.github/copilot-instructions.md
 
 # ============================================================
 # 🧾 Archivos varios
