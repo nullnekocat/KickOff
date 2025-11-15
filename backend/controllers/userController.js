@@ -126,6 +126,37 @@ exports.getCurrentUser = async (req, res) => {
   }
 }
 
+exports.getMyDetails = async (req, res) => {
+  try {
+    const id = req.user.id;
+    const user = await User.findById(id).select('_id name email points dailyStreak streakDate');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json(user);
+  } catch (err) {
+    console.error('❌ Error al obtener detalles del usuario:', err);
+    res.status(500).json({ message: 'Error fetching user details' });
+  }
+}
+
+exports.adjustPoints = async (req, res) => {
+  try {
+    const id = req.user.id;
+    const { delta } = req.body;
+    if (typeof delta !== 'number') return res.status(400).json({ message: 'delta number required' });
+
+    const user = await User.findById(id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    user.points = (user.points || 0) + delta;
+    await user.save();
+
+    res.json({ points: user.points });
+  } catch (err) {
+    console.error('❌ Error al ajustar puntos:', err);
+    res.status(500).json({ message: 'Error adjusting points' });
+  }
+}
+
 exports.getAllOtherUsers = async (req, res) => {
   try {
     const currentUserId = req.user.id; // <-- lo obtienes del JWT

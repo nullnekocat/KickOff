@@ -15,6 +15,12 @@ router.post('/login', userController.loginUser);
 // Get user
 router.get('/me', userController.getCurrentUser)
 
+// Get full current user details (points, streak)
+router.get('/me/details', authToken, userController.getMyDetails);
+
+// Adjust points for current user
+router.post('/me/points', authToken, userController.adjustPoints);
+
 // Actualizar status a online
 router.put('/:id/online', userController.setOnline);
 

@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { Pipe, PipeTransform } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { environment } from '../../environments/environment';
 
 
 interface Team {
@@ -36,7 +38,7 @@ export class CharCodeAtPipe implements PipeTransform {
 @Component({
   selector: 'app-simulador',
   standalone: true,
-  imports: [CommonModule, MatIconModule, CharCodeAtPipe, FormsModule],
+  imports: [CommonModule, MatIconModule, CharCodeAtPipe, FormsModule, HttpClientModule],
   templateUrl: './simulador.html',
   styleUrl: './simulador.css'
 })
@@ -103,10 +105,13 @@ export class Simulador {
   qualified32: any[] = [];
 
   //Apuesta y puntos del usuario
-  userPoints: number = 2000;  // saldo inicial
+  userPoints: number = 0;  // saldo obtenido desde servidor
   betAmount: number = 0;      // puntos apostados
   betResult: number = 0;      // resultado final
   reward: number = 0;         // ganancia o pérdida
+
+  private api = `${environment.apiUrl}/api`;
+  private lastBetPosition: number | null = null;
 
   // Categorías base
   strongTeams = [
@@ -125,6 +130,17 @@ export class Simulador {
     'Suecia', 'Túnez', 'Turquía', 'Uzbekistán', 'Argelia'
   ];
 
+  constructor(private http: HttpClient) {}
+
+  ngOnInit() {
+    // obtener puntos reales del servidor
+    this.http.get<any>(`${this.api}/users/me/details`, { withCredentials: true })
+      .subscribe({
+        next: (d) => { this.userPoints = d.points || 0; },
+        error: () => { this.userPoints = 0; } // usuario no autenticado -> 0 local
+      });
+  }
+
   selectTeam(team: string) {
     this.selectedTeam = team;
   }
@@ -139,10 +155,16 @@ export class Simulador {
       alert('No tienes suficientes puntos');
       return;
     }
-    this.loading = true;
-    this.reward = 0;
 
-    setTimeout(() => {
+    // Deduct the bet immediately on the server (reserve)
+    this.http.post<any>(`${this.api}/users/me/points`, { delta: -this.betAmount }, { withCredentials: true })
+      .subscribe({
+        next: (res) => {
+          this.userPoints = res.points || 0;
+          this.loading = true;
+          this.reward = 0;
+
+          setTimeout(() => {
       // Calcular poder y offset base una sola vez
       this.simulationResults = this.teams.map(t => {
         let base = 50;
@@ -192,10 +214,17 @@ export class Simulador {
 
       this.champion = current[0];
       this.loading = false;
-      this.showResults = true;
-      this.calculateUserReward();
+          this.showResults = true;
+          this.calculateUserReward();
 
-    }, 1200);
+        }, 1200);
+        },
+        error: (err) => {
+          console.error('Error reservando apuesta:', err);
+          if (err.status === 401) alert('Debes iniciar sesión para apostar puntos.');
+          else alert('No se pudo reservar la apuesta. Intenta más tarde.');
+        }
+      });
   }
 
   createGroups(teams: Team[]): Team[][] {
@@ -238,6 +267,7 @@ export class Simulador {
       alert("No se encontró la posición final del equipo seleccionado.");
       return;
     }
+    this.lastBetPosition = position;
 
     const inversePerformance = (position - 1) / 47; 
     const gainFactor = Math.pow(inversePerformance, 2); 
@@ -249,24 +279,38 @@ export class Simulador {
     //Redondear y aplicar
     this.reward = Math.round(gain);
     this.betResult = this.reward;
-    this.userPoints += this.reward;
+    // Apply reward (could be negative) on server
+    this.http.post<any>(`${this.api}/users/me/points`, { delta: this.reward }, { withCredentials: true })
+      .subscribe({
+        next: (res) => {
+          this.userPoints = res.points || this.userPoints + this.reward;
+          this.finishRewardFlow();
+        },
+        error: (err) => {
+          console.error('Error aplicando reward:', err);
+          // fallback local update
+          this.userPoints += this.reward;
+          this.finishRewardFlow();
+        }
+      });
 
-    let msg = "";
-    if (this.reward > 0) {
-      msg = `🎉 Tu equipo (${this.selectedTeam}) terminó en el puesto ${position}.\n` +
-            `¡Ganaste ${this.reward} puntos!`;
-    } else if (this.reward === 0) {
-      msg = `😐 Tu equipo (${this.selectedTeam}) terminó en el puesto ${position}.\n` +
-            `No ganaste ni perdiste puntos.`;
-    } else {
-      msg = `😞 Tu equipo (${this.selectedTeam}) terminó en el puesto ${position}.\n` +
-            `Perdiste ${Math.abs(this.reward)} puntos.`;
-    }
+    return;
 
-    alert(msg);
   }
 
-
+  private finishRewardFlow() {
+    let msg = "";
+    const pos = this.lastBetPosition || 0;
+    if (this.reward > 0) {
+      msg = `🎉 Tu equipo (${this.selectedTeam}) terminó en el puesto ${pos}.\n¡Ganaste ${this.reward} puntos!`;
+    } else if (this.reward === 0) {
+      msg = `😐 Tu equipo (${this.selectedTeam}) terminó en el puesto ${pos}.\nNo ganaste ni perdiste puntos.`;
+    } else {
+      msg = `😞 Tu equipo (${this.selectedTeam}) terminó en el puesto ${pos}.\nPerdiste ${Math.abs(this.reward)} puntos.`;
+    }
+    // Mostrar mensaje al usuario
+    alert(msg);
+  }
   playGroupStage(groups: Team[][]): Team[] {
     const qualified: Team[] = [];
     const thirdPlaces: Team[] = [];
