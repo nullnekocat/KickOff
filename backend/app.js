@@ -26,7 +26,7 @@ app.use(cors({
     'http://localhost:4200',
     'http://0.0.0.0:4200'
   ],
-  methods: ['GET', 'POST', 'PUT'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
 }));
 const io = new Server(server, {
@@ -36,7 +36,7 @@ const io = new Server(server, {
       'http://localhost:4200',
       'http://0.0.0.0:4200'
     ],
-    methods: ['GET', 'POST', 'PUT'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true
   }
 });

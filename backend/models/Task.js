@@ -10,6 +10,10 @@ const TaskSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    hidden: {
+        type: Boolean,
+        default: false
+    },
     inChargeId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',

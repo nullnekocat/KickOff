@@ -362,8 +362,16 @@ export class SocketService {
         this.socket.on('task:delete', callback);
     }
 
+    onHideTask(callback: (task: any) => void) {
+        this.socket.on('task:hide', callback);
+    }
+
     createTaskSocket(task: any) {
         this.socket.emit('task:new', task);
+    }
+
+    hideTaskSocket(task: any) {
+        this.socket.emit('task:hide', task);
     }
 
     toggleTaskSocket(task: any) {

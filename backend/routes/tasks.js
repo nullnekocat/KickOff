@@ -9,10 +9,16 @@ router.post('/', authToken, taskController.createTask);
 // Obtener tareas por grupo
 router.get('/:groupId', authToken, taskController.getTasksByGroup);
 
+// Obtener tareas ocultas por grupo
+router.get('/:groupId/hidden', authToken, taskController.getHiddenTasksByGroup);
+
 // Cambiar estado (completada/no completada)
 router.put('/:taskId/toggle', authToken, taskController.toggleTaskStatus);
 
 // Eliminar tarea
 router.delete('/:taskId', authToken, taskController.deleteTask);
+
+// Ocultar/mostrar tarea (no borrar)
+router.put('/:taskId/hide', authToken, taskController.setTaskHidden);
 
 module.exports = router;
