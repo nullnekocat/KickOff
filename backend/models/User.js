@@ -18,6 +18,18 @@ const UserSchema = new mongoose.Schema({
     type: Number,
     default: 0 // 0 = offline, 1 = online
   },
+  points: {
+    type: Number,
+    default: 0
+  },
+  dailyStreak: {
+    type: Number,
+    default: 0
+  },
+  streakDate: {
+    type: Date,
+    default: null
+  },
   createdAt: {
     type: Date,
     default: Date.now

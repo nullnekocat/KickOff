@@ -1,5 +1,15 @@
 const Task = require('../models/Task');
 const Group = require('../models/Group');
+const User = require('../models/User');
+
+// index = currentStreak
+// value = points awarded for the next completion
+const REWARD_BY_STREAK = [20, 40, 60, 70, 80, 90, 100];
+
+function rewardForStreak(currentStreak) {
+    if (currentStreak >= 6) return 100;
+    return REWARD_BY_STREAK[currentStreak] ?? 20;
+}
 
 // Crear nueva tarea
 exports.createTask = async (req, res) => {
@@ -44,7 +54,8 @@ exports.getTasksByGroup = async (req, res) => {
     try {
         const { groupId } = req.params;
         // Por defecto sólo devolver tareas no ocultas
-        const tasks = await Task.find({ groupId, hidden: false }).populate('inChargeId', 'name');
+        const tasks = await Task.find({ groupId, hidden: false })
+            .populate('inChargeId', 'name dailyStreak points streakDate');
         res.json(tasks);
     } catch (err) {
         console.error('❌ Error al obtener tareas:', err);
@@ -56,7 +67,8 @@ exports.getTasksByGroup = async (req, res) => {
 exports.getHiddenTasksByGroup = async (req, res) => {
     try {
         const { groupId } = req.params;
-        const tasks = await Task.find({ groupId, hidden: true }).populate('inChargeId', 'name');
+        const tasks = await Task.find({ groupId, hidden: true })
+            .populate('inChargeId', 'name dailyStreak points streakDate');
         res.json(tasks);
     } catch (err) {
         console.error('❌ Error al obtener tareas ocultas:', err);
@@ -70,10 +82,44 @@ exports.toggleTaskStatus = async (req, res) => {
         const { taskId } = req.params;
         const task = await Task.findById(taskId);
         if (!task) return res.status(404).json({ message: 'Tarea no encontrada.' });
-
+        const wasCompleted = task.completed;
         task.completed = !task.completed;
         await task.save();
-        const populated = await Task.findById(task._id).populate('inChargeId', 'name email');
+
+        let populated;
+        const assignedUser = await User.findById(task.inChargeId);
+        const todayStr = new Date().toISOString().slice(0, 10);
+
+        if (!assignedUser) {
+            populated = await Task.findById(task._id).populate('inChargeId', 'name email');
+        } else if (!wasCompleted && task.completed) {
+            // task was just completed => award points
+            const userStreakDateStr = assignedUser.streakDate ? assignedUser.streakDate.toISOString().slice(0, 10) : null;
+            const currentStreak = userStreakDateStr === todayStr ? (assignedUser.dailyStreak || 0) : 0;
+
+            const reward = rewardForStreak(currentStreak);
+            assignedUser.points = (assignedUser.points || 0) + reward;
+            assignedUser.dailyStreak = currentStreak + 1;
+            assignedUser.streakDate = new Date();
+            await assignedUser.save();
+
+            populated = await Task.findById(task._id).populate('inChargeId', 'name email dailyStreak points streakDate');
+        } else if (wasCompleted && !task.completed) {
+            // task was just un-completed => deduct points and decrement streak
+            const userStreakDateStr = assignedUser.streakDate ? assignedUser.streakDate.toISOString().slice(0, 10) : null;
+            const afterStreak = userStreakDateStr === todayStr ? (assignedUser.dailyStreak || 0) : (assignedUser.dailyStreak || 0);
+            const prevBefore = Math.max(0, afterStreak - 1);
+            const rewardToSubtract = rewardForStreak(prevBefore);
+
+            assignedUser.points = (assignedUser.points || 0) - rewardToSubtract;
+            assignedUser.dailyStreak = prevBefore;
+            assignedUser.streakDate = assignedUser.dailyStreak > 0 ? (userStreakDateStr === todayStr ? new Date() : assignedUser.streakDate) : null;
+            await assignedUser.save();
+
+            populated = await Task.findById(task._id).populate('inChargeId', 'name email dailyStreak points streakDate');
+        } else {
+            populated = await Task.findById(task._id).populate('inChargeId', 'name email dailyStreak points streakDate');
+        }
 
         try {
             const io = global._io;
@@ -146,7 +192,7 @@ exports.setTaskHidden = async (req, res) => {
         task.hidden = !!hidden;
         await task.save();
 
-        const populated = await Task.findById(task._id).populate('inChargeId', 'name email');
+    const populated = await Task.findById(task._id).populate('inChargeId', 'name email dailyStreak points streakDate');
 
         // Emitir evento de hide al grupo (excluir originador cuando sea posible)
         try {

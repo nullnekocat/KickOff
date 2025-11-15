@@ -61,7 +61,7 @@ exports.getMyGroups = async (req, res) => {
             .populate('members', 'name email')
             .populate({
                 path: 'tasks',
-                populate: { path: 'inChargeId', select: 'name email' }
+                populate: { path: 'inChargeId', select: 'name dailyStreak points streakDate' }
             })
             .exec();
 
