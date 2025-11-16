@@ -3,6 +3,7 @@ import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { SocketService } from '../../services/socket.service';
+// MessageService removed: we no longer fetch or display last messages in the chat list
 import { ChatSelectionService } from '../../services/chat-selection.service';
 import { UserService } from '../../services/user.service';
 import { GroupService } from '../../services/group.service';
@@ -14,6 +15,8 @@ interface Chat {
   membersCount?: number; // group
   status?: number;
   type: 'privado' | 'grupo';
+  roomId?: string;
+  unread?: boolean;
 }
 
 @Component({
@@ -39,7 +42,7 @@ export class ListaChats implements OnInit {
     private userService: UserService,
     private groupService: GroupService,
     public chatSelection: ChatSelectionService,
-    private socketService: SocketService,
+  private socketService: SocketService,
     private router: Router
   ) { }
 
@@ -70,6 +73,31 @@ export class ListaChats implements OnInit {
 
       this.grupos = [...this.grupos, mapped];
     });
+
+  // Incoming messages -> update unread indicators (no last-message/time shown)
+    this.socketService.onMessage((msg) => {
+      try {
+        const room = msg.roomId;
+        // find group match first
+        const gIdx = this.grupos.findIndex(g => String(g.id) === String(room));
+        if (gIdx >= 0) {
+          const g = this.grupos[gIdx];
+          const selected = this.chatSelection.getSelected();
+          if (!selected || selected.id !== g.id) g.unread = true;
+          this.grupos = [...this.grupos];
+          return;
+        }
+
+        // private rooms are of form a_b where a and b are user ids
+        const pIdx = this.chats.findIndex(c => c.roomId === room);
+        if (pIdx >= 0) {
+          const p = this.chats[pIdx];
+          const selected = this.chatSelection.getSelected();
+          if (!selected || selected.id !== p.id) p.unread = true;
+          this.chats = [...this.chats];
+        }
+      } catch (e) { console.warn('Error procesando msg socket en lista chats', e); }
+    });
   }
 
   // --- PRIVADOS --- //
@@ -77,14 +105,19 @@ export class ListaChats implements OnInit {
     this.loading = true;
     this.userService.getAllOtherUsers().subscribe({
       next: (users) => {
-        this.chats = users.map(u => ({
+        const meId = localStorage.getItem('currentUserId') || '';
+        // exclude self from the list
+        const others = users.filter((u: any) => String(u._id) !== String(meId));
+        this.chats = others.map(u => ({
           id: u._id,
           name: u.name,
           email: u.email,
           status: u.status,
           type: 'privado',
+          roomId: [meId, u._id].sort().join('_'),
+          unread: false
         }));
-        this.contactos = users;
+        this.contactos = others;
       },
       error: (err) => console.error('❌ Error cargando usuarios:', err),
       complete: () => this.loading = false
@@ -102,7 +135,9 @@ export class ListaChats implements OnInit {
           members: g.members || [],
           membersCount: (g.members && g.members.length) || 0,
           status: 1,
-          type: 'grupo' as const
+          type: 'grupo' as const,
+          roomId: g._id,
+          unread: false
         }));
       },
       error: (err) => {
@@ -122,6 +157,13 @@ export class ListaChats implements OnInit {
   // --- CHAT --- //
   openChat(chat: any) {
     console.log('🟢 Chat clickeado:', chat);
+
+    // clear unread on open
+    if (chat && chat.unread) {
+      chat.unread = false;
+      this.chats = [...this.chats];
+      this.grupos = [...this.grupos];
+    }
 
     if (chat.type === 'grupo') {
       this.chatSelection.setSelected({

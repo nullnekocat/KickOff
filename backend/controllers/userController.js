@@ -170,7 +170,7 @@ exports.getAllOtherUsers = async (req, res) => {
   try {
     // Return all users with points and dailyStreak, sorted descending by points
     const users = await User.find({})
-      .select('_id name points dailyStreak')
+      .select('_id name email points dailyStreak status')
       .sort({ points: -1 });
 
     res.json(users);

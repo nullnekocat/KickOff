@@ -104,6 +104,15 @@ io.on('connection', async (socket) => {
     console.error('❌ Error al actualizar estado online:', err);
   }
 
+  try {
+    const onlineUsers = await User.find({ status: 1 }).select('_id');
+    const onlineIds = onlineUsers.map(u => String(u._id));
+    socket.emit('userStatus:init', { users: onlineIds });
+    console.log('📡 Enviado userStatus:init al socket conectado:', socket.id, onlineIds.length);
+  } catch (e) {
+    console.warn('⚠️ No se pudo enviar userStatus:init:', e);
+  }
+
   const pendingOffers = await RoomKeyOffer.find({ toUserId: userId });
   for (const offer of pendingOffers) {
     socket.emit('roomKeyOffered', {
@@ -228,6 +237,18 @@ io.on('connection', async (socket) => {
         }
       }
     }, 1000); // 1 segundo de margen
+  });
+
+  // Presence events: allow client to declare visibility
+  socket.on('presence', async ({ status }) => {
+    try {
+      const s = Number(status) === 1 ? 1 : 0;
+      await User.findByIdAndUpdate(userId, { status: s });
+      io.emit('userStatus', { userId, status: s });
+      console.log(`🔔 Presence update from ${socket.user.name}: status=${s}`);
+    } catch (err) {
+      console.error('❌ Error handling presence event:', err);
+    }
   });
 
   // --- SIGNALLING --- //

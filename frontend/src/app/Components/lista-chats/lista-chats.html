@@ -1,17 +1,17 @@
 <div class="flex flex-col h-full w-full bg-[#2C2336] text-white">
 
-  <div class="flex pt-6 p-4 pb-2 bg-[#2C2336]">
-    <button class="flex-1 py-2 mx-1 rounded-md transition"
+  <div class="flex pt-8 p-5 pb-3 bg-[#2C2336]">
+    <button class="flex-1 py-3 mx-1 rounded-md transition text-lg"
       [ngClass]="selectedTab === 'privados' ? 'bg-[#59496b]' : 'bg-[#1e1725] hover:bg-[#1e1725]'"
       (click)="selectedTab = 'privados'">
       Privados
     </button>
-    <button class="flex-1 py-2 mx-1 rounded-md transition"
+    <button class="flex-1 py-3 mx-1 rounded-md transition text-lg"
       [ngClass]="selectedTab === 'grupos' ? 'bg-[#59496b]' : 'bg-[#1e1725] hover:bg-[#1e1725]'"
       (click)="selectedTab = 'grupos'">
       Grupos
     </button>
-    <button class="ml-2 px-3 rounded-md bg-[#1e1725] hover:bg-[#59496b] transition" (click)="crearGrupo()">
+    <button class="ml-2 px-3 rounded-md bg-[#1e1725] hover:bg-[#59496b] transition text-xl" (click)="crearGrupo()">
       +
     </button>
   </div>
@@ -28,29 +28,27 @@
       Cargando usuarios...
     </div>
 
-    <ul *ngIf="!loading && chats.length > 0" class="space-y-2">
+    <ul *ngIf="!loading && chatsFiltrados.length > 0" class="space-y-2">
       <li *ngFor="let user of chatsFiltrados" (click)="openChat(user)"
         class="p-3 rounded-lg bg-[#21182B] hover:bg-[#5B4C73] cursor-pointer transition"
         [ngClass]="chatSelection.getSelected()?.id === user.id ? 'ring-2 ring-[#6805F2]' : ''">
         <div class="flex items-center justify-between">
-          <span class="font-semibold">{{ user.name }}</span>
-          <span *ngIf="user.type === 'privado'" class="text-xs text-gray-300">
-            {{ user.status === 1 ? '🟢 Online' : '⚫ Offline' }}
-          </span>
+          <div class="flex flex-col">
+            <span class="font-semibold">{{ user.name }}</span>
+            <span class="text-sm text-gray-300 truncate max-w-xs">{{ user.type === 'privado' ? user.email : (user.membersCount + ' miembros') }}</span>
+          </div>
+          <div class="flex flex-col items-end">
+            <span *ngIf="user.unread" class="inline-block mt-2 text-red-400 text-sm font-bold">🔴 Nuevo</span>
+            <span *ngIf="!user.unread && user.type === 'privado'" class="text-xs text-gray-300">
+              {{ user.status === 1 ? '🟢 Online' : '⚫ Offline' }}
+            </span>
+          </div>
         </div>
-        <span class="text-sm text-gray-300 truncate">
-          <ng-container *ngIf="user.type === 'privado'">
-            {{ user.email }}
-          </ng-container>
-          <ng-container *ngIf="user.type === 'grupo'">
-            {{ user.membersCount }} miembros
-          </ng-container>
-        </span>
       </li>
     </ul>
 
-    <div *ngIf="!loading && chats.length === 0" class="text-center text-gray-400 py-6">
-      No hay otros usuarios disponibles.
+    <div *ngIf="!loading && chatsFiltrados.length === 0" class="text-center text-gray-400 py-6">
+      No hay elementos en esta lista.
     </div>
   </div>
 

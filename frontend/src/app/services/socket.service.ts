@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { io, Socket } from 'socket.io-client';
 import { EncryptionService } from './encryption.service';
-import { Subject } from 'rxjs';
+import { Subject, Subscription } from 'rxjs';
 import { MediaData } from './message.service';
 import { SupabaseService } from './supabase.service';
 import { environment } from '../environments/environment';
@@ -25,6 +25,9 @@ export class SocketService {
     public localMessage$ = new Subject<ChatMessage>();
     public roomKeyReady$ = new Subject<string>();
 
+    // Exponer un Subject simple para el estado de usuarios (suscribirse desde componentes)
+    public userStatus$ = new Subject<{ userId: string, status: number }>();
+
     constructor(
         private encryptionService: EncryptionService,
         private supabaseService: SupabaseService
@@ -34,6 +37,27 @@ export class SocketService {
         this.socket.on('connect', () => {
             this.socketId = this.socket.id;
             console.log('✅ Socket conectado:', this.socketId);
+        });
+
+        // Recibir estado inicial de usuarios online y reenviarlo por el Subject
+        this.socket.on('userStatus:init', ({ users }: any) => {
+            try {
+                for (const u of (users || [])) {
+                    this.userStatus$.next({ userId: String(u), status: 1 });
+                }
+                console.log('📥 userStatus:init procesado, online count:', (users || []).length);
+            } catch (err) {
+                console.warn('⚠️ Error procesando userStatus:init', err);
+            }
+        });
+
+        // Mantener sincronía del estado de usuarios cuando el servidor emite cambios individuales
+        this.socket.on('userStatus', ({ userId, status }: any) => {
+            try {
+                this.userStatus$.next({ userId: String(userId), status });
+            } catch (err) {
+                console.warn('⚠️ Error procesando userStatus', err);
+            }
         });
 
         this.setupRoomKeyHandlers();
@@ -345,8 +369,10 @@ export class SocketService {
         });
     }
 
-    onUserStatusChange(callback: (data: { userId: string, status: number }) => void): void {
-        this.socket.on('userStatus', callback);
+    onUserStatusChange(callback: (data: { userId: string, status: number }) => void): Subscription {
+        // Suscribirse al Subject público. Retornamos la Subscription para que el caller
+        // pueda cancelar si lo desea (unsubscribe).
+        return this.userStatus$.subscribe({ next: callback, error: (e) => console.warn('userStatus$ error', e) });
     }
 
     // ---------------- Tasks ---------------- //
