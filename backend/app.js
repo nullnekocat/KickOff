@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
+const fs = require('fs');
 const connectDB = require('./config/db');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -22,7 +23,6 @@ app.use(cookieParser());
 // CORS settings
 app.use(cors({
   origin: [
-    'https://cecil-untrailed-bifilarly.ngrok-free.dev',
     'http://localhost:4200',
     'http://0.0.0.0:4200'
   ],
@@ -32,7 +32,6 @@ app.use(cors({
 const io = new Server(server, {
   cors: {
     origin: [
-      'https://cecil-untrailed-bifilarly.ngrok-free.dev',
       'http://localhost:4200',
       'http://0.0.0.0:4200'
     ],
@@ -280,5 +279,5 @@ io.on('connection', async (socket) => {
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on http://0.0.0.0:${PORT}`);
+  console.log(`Server running on https://0.0.0.0:${PORT}`);
 });
