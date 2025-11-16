@@ -188,7 +188,11 @@ export class SocketService {
 
     async ensureRoomKey(roomId: string, myUserId: string, otherUserId: string) {
         const existing = this.getStoredRoomKeyBase64(roomId);
-        if (existing) return;
+        if (existing) {
+            // Si ya tenemos la key en localStorage, notificar que está lista
+            this.roomKeyReady$.next(roomId);
+            return;
+        }
 
         // publicar clave pública
         const myPub = this.encryptionService.getPublicKey();
@@ -205,6 +209,9 @@ export class SocketService {
         // determinista: menor userId genera y ofrece la roomKey
         if (myUserId < otherUserId) {
             const roomKeyB64 = await this.generateAndStoreRoomKey(roomId);
+            // Como aquí generamos y guardamos la roomKey localmente, avisamos
+            // para habilitar el botón de encriptación en la UI local.
+            this.roomKeyReady$.next(roomId);
             try {
                 const pubBuf = this.base64ToArrayBuffer(recipientPub);
                 const pubKey = await crypto.subtle.importKey('spki', pubBuf, { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['encrypt']);
