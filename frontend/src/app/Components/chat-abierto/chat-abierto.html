@@ -15,10 +15,20 @@
       </div>
     </div>
     <div class="flex gap-2">
-<button class="text-gray-300 hover:text-white" (click)="iniciarLlamadaVoz()"><mat-icon>phone</mat-icon></button>
-<button class="text-gray-300 hover:text-white" (click)="iniciarVideollamada()"><mat-icon>videocam</mat-icon></button>
-      <button (click)="toggleEncryption()" [disabled]="!roomKeyReady"
-        [ngClass]="{ 'opacity-50 cursor-not-allowed': !roomKeyReady }" mat-icon-button
+      <button class="text-gray-300 hover:text-white" 
+        (click)="startCall()" 
+        [disabled]="callState !== 'idle'">
+        <mat-icon>phone</mat-icon>
+      </button>
+      <button class="text-gray-300 hover:text-white"
+        (click)="startCall()" 
+        [disabled]="callState !== 'idle'">
+        <mat-icon>videocam</mat-icon>
+      </button>
+      <button (click)="toggleEncryption()" 
+        [disabled]="!roomKeyReady"
+        [ngClass]="{ 'opacity-50 cursor-not-allowed': !roomKeyReady }" 
+        mat-icon-button
         class="text-gray-300 hover:text-white">
         <mat-icon>{{ encryptionEnabled ? 'lock' : 'lock_open' }}</mat-icon>
       </button>
@@ -35,9 +45,10 @@
       <!-- Mostrar media -->
       <ng-container *ngIf="msg.media">
         <img *ngIf="msg.media.type === 'image'" [src]="msg.media.url" class="max-w-full rounded-lg mb-2" />
-        <video *ngIf="msg.media.type === 'video'" [src]="msg.media.url" class="max-w-full rounded-lg mb-2" controls></video>
-        <a *ngIf="msg.media.type === 'file'" [href]="msg.media.url" target="_blank"
-          class="underline text-blue-300">{{ msg.media.name }}</a>
+        <video *ngIf="msg.media.type === 'video'" [src]="msg.media.url" class="max-w-full rounded-lg mb-2"
+          controls></video>
+        <a *ngIf="msg.media.type === 'file'" [href]="msg.media.url" target="_blank" class="underline text-blue-300">{{
+          msg.media.name }}</a>
       </ng-container>
 
       <div>{{ msg.text }}</div>
@@ -81,69 +92,104 @@
       </div>
       <h2 class="text-lg font-semibold mt-4 text-[#330685]">{{ selectedChat?.name }}</h2>
 
-      <!-- Estado dinámico -->
-      <p *ngIf="!enLlamada" class="text-sm text-gray-500">
-        {{ 'Llamando...' }}
+      <!-- Estado dinámico usando callState -->
+      <p *ngIf="callState === 'calling'" class="text-sm text-gray-500">
+        Llamando...
       </p>
-      <p *ngIf="enLlamada" class="text-sm text-green-600">Llamada en curso</p>
+      <p *ngIf="callState === 'inCall'" class="text-sm text-green-600">
+        Llamada en curso
+      </p>
     </div>
 
     <div class="flex justify-center gap-6">
-      <button *ngIf="!enLlamada" class="bg-red-500 hover:bg-red-600 text-white py-3 px-6 rounded-full flex items-center gap-2"
-        (click)="cerrarLlamada()">
+      <button *ngIf="callState === 'calling'"
+        class="bg-red-500 hover:bg-red-600 text-white py-3 px-6 rounded-full flex items-center gap-2"
+        (click)="hangUp()">
         <mat-icon>call_end</mat-icon>
         Cancelar
       </button>
 
-      <button *ngIf="enLlamada" class="bg-red-500 hover:bg-red-600 text-white py-3 px-6 rounded-full flex items-center gap-2"
-        (click)="cerrarLlamada()">
+      <button *ngIf="callState === 'inCall'"
+        class="bg-red-500 hover:bg-red-600 text-white py-3 px-6 rounded-full flex items-center gap-2"
+        (click)="hangUp()">
         <mat-icon>call_end</mat-icon>
         Colgar
       </button>
     </div>
 
-    <button class="absolute top-3 right-3 text-gray-500 hover:text-gray-700" (click)="cerrarLlamada()">
+    <button class="absolute top-3 right-3 text-gray-500 hover:text-gray-700" (click)="hangUp()">
       <mat-icon>close</mat-icon>
     </button>
   </div>
 </div>
 
 <!-- MODAL VIDEOLLAMADA -->
-<div *ngIf="abrirVideollamada" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+<div [class.hidden]="!abrirVideollamada" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
   <div class="bg-white p-6 rounded-2xl shadow-lg w-[32rem] text-center relative">
 
-    <h2 class="text-lg font-semibold mb-4 text-[#330685]">Videollamada con {{ selectedChat?.name }}</h2>
+    <h2 class="text-lg font-semibold mb-4 text-[#330685]">
+      Videollamada con {{ selectedChat?.name }}
+    </h2>
 
     <div class="relative bg-black rounded-xl h-64 flex items-center justify-center mb-6 overflow-hidden">
-      <video #remoteVideo autoplay playsinline class="absolute inset-0 w-full h-full object-cover"></video>
-      <video #localVideo autoplay playsinline muted
-        class="absolute bottom-3 right-3 w-32 h-32 object-cover border-2 border-white rounded-lg shadow-lg"></video>
-
-      <p *ngIf="!enLlamada" class="text-gray-300">Conectando...</p>
+      <!-- Video remoto (fondo) -->
+      <video #remoteVideo 
+        autoplay 
+        playsinline 
+        class="absolute inset-0 w-full h-full object-cover">
+      </video>
+      
+      <!-- Placeholder cuando no hay video remoto -->
+      <div *ngIf="callState === 'calling'" 
+        class="absolute inset-0 flex items-center justify-center bg-gray-800 z-5">
+        <div class="text-center text-white">
+          <div class="w-20 h-20 rounded-full bg-[#501F9D] flex items-center justify-center text-3xl font-bold mx-auto mb-3">
+            {{ selectedChat?.name ? (selectedChat?.name | slice:0:2) : '??' }}
+          </div>
+          <p class="text-sm">Esperando video...</p>
+        </div>
+      </div>
+      
+      <!-- Video local (esquina) -->
+      <video #localVideo 
+        autoplay 
+        playsinline 
+        muted
+        class="absolute bottom-3 right-3 w-32 h-32 object-cover border-2 border-white rounded-lg shadow-lg z-10">
+      </video>
+      
+      <!-- Mensaje de espera (solo cuando está llamando) -->
+      <p *ngIf="callState === 'calling'" 
+        class="absolute text-white text-lg z-20 bg-black/70 px-4 py-2 rounded">
+        Esperando respuesta...
+      </p>
     </div>
 
     <div class="flex justify-center">
       <button class="bg-red-500 hover:bg-red-600 text-white py-2 px-6 rounded-full flex items-center gap-2"
-        (click)="cerrarLlamada()">
+        (click)="hangUp()">
         <mat-icon>call_end</mat-icon>
         Colgar
       </button>
     </div>
 
-    <button class="absolute top-3 right-3 text-gray-500 hover:text-gray-700" (click)="cerrarLlamada()">
+    <button class="absolute top-3 right-3 text-gray-500 hover:text-gray-700" (click)="hangUp()">
       <mat-icon>close</mat-icon>
     </button>
   </div>
 </div>
+
 <!-- MODAL LLAMADA ENTRANTE -->
 <div *ngIf="llamadaEntrante" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
   <div class="bg-white p-6 rounded-2xl shadow-lg w-[24rem] max-w-full text-center relative">
-    
+
     <div class="flex flex-col items-center mb-6">
       <div class="w-24 h-24 rounded-full bg-[#501F9D] flex items-center justify-center text-white text-3xl font-bold">
         {{ nombreLlamante ? (nombreLlamante | slice:0:2) : '??' }}
       </div>
-      <h2 class="text-lg font-semibold mt-4 text-[#330685]">{{ nombreLlamante || 'Usuario desconocido' }}</h2>
+      <h2 class="text-lg font-semibold mt-4 text-[#330685]">
+        {{ nombreLlamante || 'Usuario desconocido' }}
+      </h2>
       <p class="text-sm text-gray-500">
         {{ tipoLlamadaEntrante === 'video' ? 'Videollamada entrante...' : 'Llamada de voz entrante...' }}
       </p>
@@ -151,18 +197,18 @@
 
     <div class="flex justify-center gap-6">
       <button class="bg-red-500 hover:bg-red-600 text-white py-3 px-6 rounded-full flex items-center gap-2"
-        (click)="rechazarLlamadaEntrante()">
+        (click)="rejectCall()">
         <mat-icon>call_end</mat-icon>
         Rechazar
       </button>
       <button class="bg-green-500 hover:bg-green-600 text-white py-3 px-6 rounded-full flex items-center gap-2"
-        (click)="aceptarLlamadaEntrante()">
+        (click)="acceptCall()">
         <mat-icon>call</mat-icon>
         Aceptar
       </button>
     </div>
 
-    <button class="absolute top-3 right-3 text-gray-500 hover:text-gray-700" (click)="rechazarLlamadaEntrante()">
+    <button class="absolute top-3 right-3 text-gray-500 hover:text-gray-700" (click)="rejectCall()">
       <mat-icon>close</mat-icon>
     </button>
   </div>

@@ -1,209 +1,329 @@
+// src/app/services/webrtc.service.ts
 import { Injectable } from '@angular/core';
 import { SocketService } from './socket.service';
+import { BehaviorSubject, Subject, Observable } from 'rxjs';
 
-@Injectable({ providedIn: 'root' })
-export class WebRTCService {
+@Injectable({
+    providedIn: 'root'
+})
+export class WebrtcService {
+
+    private peer: RTCPeerConnection | null = null;
     private localStream: MediaStream | null = null;
     private remoteStream: MediaStream | null = null;
-    private peerConnection: RTCPeerConnection | null = null;
-    private currentRoomId: string | null = null;
-    private isVideoCall = false;
+    private currentTarget: string | null = null;
 
-    private onRemoteStreamCallback?: (stream: MediaStream) => void;
-    private onIncomingCallCallback?: (isVideo: boolean) => void;
-    private onCallEndedCallback?: () => void;
-    private onIncomingCallDetailedCallback?: (data: { from: string; sdp: RTCSessionDescriptionInit; isVideo: boolean }) => void;
-    private pendingIncomingCall?: { from: string; sdp: RTCSessionDescriptionInit; isVideo: boolean };
+    private incomingCallSubject = new Subject<{ from: string; isVideo: boolean }>();
+    private localStreamSubject = new BehaviorSubject<MediaStream | null>(null);
+    private remoteStreamSubject = new BehaviorSubject<MediaStream | null>(null);
+    private callEndedSubject = new Subject<void>();
+
+    private pendingRemoteCandidates: RTCIceCandidateInit[] = [];
+    private remoteDescSet = false;
 
     constructor(private socketService: SocketService) {
-        this.setupSignalingListeners();
-    }
+        const socket = this.socketService.socket;
 
-    // Escucha las señales entrantes (oferta, respuesta, ice, finalización)
-    private setupSignalingListeners() {
-        this.socketService.on('webrtc:offer', async ({ roomId, sdp, isVideo, from }) => {
-            console.log('📞 Oferta recibida de', from, 'para room', roomId);
-            this.isVideoCall = isVideo;
-            this.currentRoomId = roomId;
-            this.pendingIncomingCall = { from, sdp, isVideo };
-            if (this.onIncomingCallDetailedCallback) {
-                this.onIncomingCallDetailedCallback({ from, sdp, isVideo });
-            } else if (this.onIncomingCallCallback) {
-                this.onIncomingCallCallback(isVideo);
-            }
+        socket.on('incoming-call', ({ fromUserId, isVideo }: any) => {
+            this.incomingCallSubject.next({ from: fromUserId, isVideo: !!isVideo });
         });
 
-        this.socketService.on('webrtc:answer', async ({ sdp }) => {
-            if (!this.peerConnection) return;
-            await this.peerConnection.setRemoteDescription(new RTCSessionDescription(sdp));
-        });
-
-        this.socketService.on('webrtc:ice-candidate', async ({ candidate }) => {
+        socket.on('webrtc:call-accepted', async ({ fromUserId }: any) => {
             try {
-                if (this.peerConnection)
-                    await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-            } catch (err) {
-                console.error('Error añadiendo candidato ICE:', err);
-            }
-        });
+                this.currentTarget = fromUserId;
 
-        this.socketService.on('webrtc:end-call', () => this.endCall(false));
-    }
+                await this.ensureLocalMedia();
+                await this.ensurePeerConnection();
+                this.attachLocalTracks();
 
-    private pendingOffer: any = null;
+                const offer = await this.peer!.createOffer();
+                await this.peer!.setLocalDescription(offer);
 
-    // Llamada saliente
-    async startCall(roomId: string, isVideo: boolean) {
-        this.isVideoCall = isVideo;
-        this.currentRoomId = roomId;
-
-        await this.createPeerConnection();
-
-        this.localStream = await navigator.mediaDevices.getUserMedia({
-            video: isVideo,
-            audio: true
-        });
-
-        this.localStream.getTracks().forEach(track =>
-            this.peerConnection!.addTrack(track, this.localStream!)
-        );
-
-        const offer = await this.peerConnection!.createOffer();
-        await this.peerConnection!.setLocalDescription(offer);
-
-        //DebugLog
-        console.log('🔊 [client] Emitiendo webrtc:offer ->', { roomId, isVideo, sdp: offer ? { type: offer.type, sdp: offer.sdp?.slice?.(0,100)+'...' } : null });
-        this.socketService.emit('webrtc:offer', { roomId, sdp: offer, isVideo });
-        return this.localStream;
-    }
-
-    // Llamada entrante aceptada
-    async acceptCall() {
-        if (!this.currentRoomId || !this.pendingOffer) return;
-
-        await this.createPeerConnection();
-
-        this.localStream = await navigator.mediaDevices.getUserMedia({
-            video: this.isVideoCall,
-            audio: true
-        });
-
-        this.localStream.getTracks().forEach(track =>
-            this.peerConnection!.addTrack(track, this.localStream!)
-        );
-
-        await this.peerConnection!.setRemoteDescription(new RTCSessionDescription(this.pendingOffer));
-        const answer = await this.peerConnection!.createAnswer();
-        await this.peerConnection!.setLocalDescription(answer);
-
-        this.socketService.emit('webrtc:answer', {
-            roomId: this.currentRoomId,
-            sdp: answer
-        });
-
-        this.pendingOffer = null;
-        return this.localStream;
-    }
-
-    private async createPeerConnection() {
-        this.peerConnection = new RTCPeerConnection({
-            iceServers: [{ urls: ['stun:stun.l.google.com:19302'] }]
-        });
-
-        this.remoteStream = new MediaStream();
-
-        this.peerConnection.ontrack = event => {
-            event.streams[0].getTracks().forEach(track =>
-                this.remoteStream!.addTrack(track)
-            );
-            if (this.onRemoteStreamCallback) this.onRemoteStreamCallback(this.remoteStream!);
-        };
-
-        this.peerConnection.onicecandidate = event => {
-            if (event.candidate && this.currentRoomId) {
-                this.socketService.emit('webrtc:ice-candidate', {
-                    roomId: this.currentRoomId,
-                    candidate: event.candidate
+                this.socketService.socket.emit('webrtc:offer', {
+                    toUserId: fromUserId,
+                    sdp: offer
                 });
+
+            } catch (err) {
             }
-        };
-    }
-
-    // Callbacks
-    onRemoteStream(callback: (stream: MediaStream) => void) {
-        this.onRemoteStreamCallback = callback;
-    }
-
-    onIncomingCall(callback: (isVideo: boolean) => void) {
-        this.onIncomingCallCallback = callback;
-    }
-
-    onIncomingCallDetailed(callback: (data: { from: string; sdp: RTCSessionDescriptionInit; isVideo: boolean }) => void) {
-        this.onIncomingCallDetailedCallback = callback;
-    }
-
-    async acceptIncomingCall(roomId: string) {
-        if (!this.pendingIncomingCall) return null;
-
-        const { sdp, isVideo } = this.pendingIncomingCall;
-        this.pendingIncomingCall = undefined;
-        this.isVideoCall = isVideo;
-        this.currentRoomId = roomId;
-
-        await this.createPeerConnection();
-
-        this.localStream = await navigator.mediaDevices.getUserMedia({
-            video: isVideo,
-            audio: true
         });
 
-        this.localStream.getTracks().forEach(track =>
-            this.peerConnection!.addTrack(track, this.localStream!)
-        );
+        // CALLEE recibe offer
+        socket.on('webrtc:offer', async ({ fromUserId, sdp }: any) => {
+            try {
+                this.currentTarget = fromUserId;
 
-        await this.peerConnection!.setRemoteDescription(new RTCSessionDescription(sdp));
-        const answer = await this.peerConnection!.createAnswer();
-        await this.peerConnection!.setLocalDescription(answer);
+                await this.ensurePeerConnection();
+                await this.peer!.setRemoteDescription(new RTCSessionDescription(sdp));
+                this.remoteDescSet = true;
 
-        //DebugLog
-        console.log('🔊 [client] Emitiendo webrtc:answer ->', { roomId: this.currentRoomId });
-        this.socketService.emit('webrtc:answer', { roomId, sdp: answer });
+                for (const c of this.pendingRemoteCandidates) {
+                    try {
+                        await this.peer!.addIceCandidate(new RTCIceCandidate(c));
+                    } catch (e) {
+                    }
+                }
+                this.pendingRemoteCandidates = [];
 
-        console.log('✅ Llamada entrante aceptada.');
+                await this.ensureLocalMedia();
+                this.attachLocalTracks();
+                const answer = await this.peer!.createAnswer();
+                await this.peer!.setLocalDescription(answer);
+
+                this.socketService.socket.emit('webrtc:answer', {
+                    toUserId: fromUserId,
+                    sdp: answer
+                });
+
+            } catch (err) {
+
+            }
+        });
+
+        socket.on('webrtc:answer', async ({ fromUserId, sdp }: any) => {
+            try {
+                await this.peer!.setRemoteDescription(new RTCSessionDescription(sdp));
+                this.remoteDescSet = true;
+
+                for (const c of this.pendingRemoteCandidates) {
+                    try {
+                        await this.peer!.addIceCandidate(new RTCIceCandidate(c));
+                    } catch (e) {
+
+                    }
+                }
+                this.pendingRemoteCandidates = [];
+
+            } catch (err) {
+
+            }
+        });
+
+        socket.on('webrtc:ice-candidate', async ({ fromUserId, candidate }: any) => {
+            try {
+                if (!candidate || !this.peer) return;
+
+                if (!this.remoteDescSet) {
+                    this.pendingRemoteCandidates.push(candidate);
+                    return;
+                }
+                await this.peer.addIceCandidate(new RTCIceCandidate(candidate));
+            } catch (err) {
+
+            }
+        });
+
+        socket.on('webrtc:end-call', (payload: any) => {
+            this.cleanup();
+            this.callEndedSubject.next();
+        });
+    }
+
+    private async ensurePeerConnection(): Promise<void> {
+        if (this.peer) {
+            return;
+        }
+
+        this.peer = new RTCPeerConnection({
+            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+        });
+        // ICE candidate handler
+        this.peer.onicecandidate = (ev) => {
+            if (ev.candidate && this.currentTarget) {
+                this.socketService.socket.emit('webrtc:ice-candidate', {
+                    toUserId: this.currentTarget,
+                    candidate: ev.candidate
+                });
+            } else if (!ev.candidate) {
+
+            }
+        };
+
+        // Track handler
+        this.peer.ontrack = (ev: RTCTrackEvent) => {
+
+            // Usar ev.streams[0] si está disponible
+            if (ev.streams && ev.streams.length > 0) {
+                const incomingStream = ev.streams[0];
+
+                if (!this.remoteStream || this.remoteStream.id !== incomingStream.id) {
+                    this.remoteStream = incomingStream;
+                    this.remoteStreamSubject.next(this.remoteStream);
+                } else {
+                    // Verificar si hay tracks nuevos
+                    const currentTrackIds = this.remoteStream.getTracks().map(t => t.id);
+                    const incomingTrackIds = incomingStream.getTracks().map(t => t.id);
+
+                    if (JSON.stringify(currentTrackIds.sort()) !== JSON.stringify(incomingTrackIds.sort())) {
+                        this.remoteStream = incomingStream;
+                        this.remoteStreamSubject.next(this.remoteStream);
+                    }
+                }
+                return;
+            }
+
+            // Fallback: crear stream manualmente
+            if (!this.remoteStream) {
+                this.remoteStream = new MediaStream();
+            }
+
+            if (!this.remoteStream.getTracks().some(t => t.id === ev.track.id)) {
+                this.remoteStream.addTrack(ev.track);
+                this.remoteStreamSubject.next(this.remoteStream);
+            }
+        };
+
+        this.remoteDescSet = false;
+    }
+
+    private async ensureLocalMedia(): Promise<void> {
+        if (this.localStream) {
+            return;
+        }
+
+        try {
+            this.localStream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                },
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true
+                }
+            });
+
+            const tracks = this.localStream.getTracks();
+            this.localStreamSubject.next(this.localStream);
+
+        } catch (err) {
+            throw err;
+        }
+    }
+
+    private attachLocalTracks(): void {
+        if (!this.peer || !this.localStream) {
+            return;
+        }
+
+        const tracks = this.localStream.getTracks();
+
+        tracks.forEach(track => {
+            // Verificar si el track ya está agregado
+            const existingSender = this.peer!.getSenders()
+                .find(s => s.track?.id === track.id);
+
+            if (existingSender) {
+                return;
+            }
+
+            // Agregar track
+            try {
+                this.peer!.addTrack(track, this.localStream!);
+            } catch (e) {
+
+            }
+        });
+    }
+
+    async callUser(targetUserId: string): Promise<void> {
+        if (!targetUserId) {
+            return;
+        }
+        this.currentTarget = targetUserId;
+        await this.ensureLocalMedia();
+
+        this.socketService.socket.emit('webrtc:call-user', {
+            toUserId: targetUserId,
+            isVideo: true
+        });
+    }
+
+    async acceptCall(fromUserId: string): Promise<void> {
+        if (!fromUserId) {
+            return;
+        }
+        this.currentTarget = fromUserId;
+        await this.ensureLocalMedia();
+
+        this.socketService.socket.emit('webrtc:accept-call', {
+            toUserId: fromUserId
+        });
+    }
+
+    rejectCall(fromUserId: string): void {
+        this.socketService.socket.emit('webrtc:end-call', {
+            toUserId: fromUserId
+        });
+        this.cleanup();
+    }
+
+    endCall(): void {
+        if (this.currentTarget) {
+            this.socketService.socket.emit('webrtc:end-call', {
+                toUserId: this.currentTarget
+            });
+        }
+        this.cleanup();
+        this.callEndedSubject.next();
+    }
+
+    private cleanup(): void {
+        if (this.peer) {
+            try {
+                this.peer.onicecandidate = null;
+                this.peer.ontrack = null;
+                this.peer.onconnectionstatechange = null;
+                this.peer.oniceconnectionstatechange = null;
+                this.peer.close();
+            } catch (e) {
+            }
+            this.peer = null;
+        }
+
+        if (this.remoteStream) {
+            this.remoteStream.getTracks().forEach(t => {
+                try { t.stop(); } catch (e) { }
+            });
+            this.remoteStream = null;
+            this.remoteStreamSubject.next(null);
+        }
+
+        if (this.localStream) {
+            this.localStream.getTracks().forEach(t => {
+                try { t.stop(); } catch (e) { }
+            });
+            this.localStream = null;
+            this.localStreamSubject.next(null);
+        }
+
+        this.pendingRemoteCandidates = [];
+        this.remoteDescSet = false;
+        this.currentTarget = null;
+    }
+
+    getLocalStream(): MediaStream | null {
         return this.localStream;
     }
 
-    rejectIncomingCall() {
-        console.log('🚫 Llamada rechazada.');
-        this.pendingIncomingCall = undefined;
-        if (this.currentRoomId) {
-            this.socketService.emit('webrtc:end-call', { roomId: this.currentRoomId });
-        }
+    getRemoteStream(): MediaStream | null {
+        return this.remoteStream;
     }
 
-    onCallEnded(callback: () => void) {
-        this.onCallEndedCallback = callback;
+    onIncomingCallDetailed(): Observable<{ from: string; isVideo: boolean }> {
+        return this.incomingCallSubject.asObservable();
     }
 
-    // Finalizar llamada
-    endCall(emitSignal = true) {
-        if (this.peerConnection) {
-            this.peerConnection.close();
-            this.peerConnection = null;
-        }
-
-        this.localStream?.getTracks().forEach(t => t.stop());
-        this.remoteStream?.getTracks().forEach(t => t.stop());
-        this.localStream = null;
-        this.remoteStream = null;
-
-        if (emitSignal && this.currentRoomId) {
-            this.socketService.emit('webrtc:end-call', { roomId: this.currentRoomId });
-        }
-
-        if (this.onCallEndedCallback) this.onCallEndedCallback();
-
-        this.currentRoomId = null;
-        this.pendingOffer = null;
+    onLocalStream(): Observable<MediaStream | null> {
+        return this.localStreamSubject.asObservable();
     }
+
+    onRemoteStream(): Observable<MediaStream | null> {
+        return this.remoteStreamSubject.asObservable();
+    }
+
+    onCallEnded(): Observable<void> {
+        return this.callEndedSubject.asObservable();
+    }
+
 }

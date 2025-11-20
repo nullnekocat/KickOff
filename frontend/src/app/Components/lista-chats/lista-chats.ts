@@ -157,6 +157,7 @@ export class ListaChats implements OnInit {
   // --- CHAT --- //
   openChat(chat: any) {
     console.log('🟢 Chat clickeado:', chat);
+    console.log("DEBUG openChat:", chat.id);
 
     // clear unread on open
     if (chat && chat.unread) {

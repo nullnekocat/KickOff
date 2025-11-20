@@ -18,12 +18,14 @@ export interface ChatMessage {
 
 @Injectable({ providedIn: 'root' })
 export class SocketService {
-    private socket!: Socket;
+    public socket!: Socket;
     public socketId: string | undefined = '';
     private publicKeys: Record<string, string> = {}; // { userId: publicKeyBase64 }
 
     public localMessage$ = new Subject<ChatMessage>();
     public roomKeyReady$ = new Subject<string>();
+
+    public socketIdByUserId = new Map<string, string>();
 
     // Exponer un Subject simple para el estado de usuarios (suscribirse desde componentes)
     public userStatus$ = new Subject<{ userId: string, status: number }>();
@@ -450,5 +452,6 @@ export class SocketService {
             this.socket.off(event, handler);
         }
     }
+    
 
 }

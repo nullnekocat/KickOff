@@ -21,22 +21,43 @@ app.use(express.json());
 app.use(cookieParser());
 
 // CORS settings
-app.use(cors({
-  origin: [
-    'http://localhost:4200',
-    'http://0.0.0.0:4200'
-  ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true
-}));
-const io = new Server(server, {
-  cors: {
-    origin: [
-      'http://localhost:4200',
-      'http://0.0.0.0:4200'
-    ],
+const devAllowAll = (process.env.NODE_ENV || 'development') !== 'production' || process.env.ALLOW_ALL_ORIGINS === 'true';
+
+// Build a list of allowed origins from env if running in production mode.
+let corsOptions;
+if (devAllowAll) {
+  corsOptions = {
+    origin: (origin, callback) => callback(null, true), // reflect origin
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true
+  };
+} else {
+  const allowed = [
+    'http://localhost:4200',
+    'http://0.0.0.0:4200'
+  ];
+
+  const localEnv = process.env.LOCAL_ORIGIN;
+  if (localEnv) {
+    // Ensure it has a protocol; if not, assume http.
+    const withProto = localEnv.startsWith('http') ? localEnv : `http://${localEnv}`;
+    allowed.push(withProto);
+  }
+
+  corsOptions = {
+    origin: allowed,
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true
+  };
+}
+
+app.use(cors(corsOptions));
+
+const io = new Server(server, {
+  cors: {
+    origin: devAllowAll ? ((origin, callback) => callback(null, true)) : corsOptions.origin,
+    methods: corsOptions.methods,
+    credentials: corsOptions.credentials
   }
 });
 
@@ -250,30 +271,142 @@ io.on('connection', async (socket) => {
     }
   });
 
-  // --- SIGNALLING --- //
-  socket.on('webrtc:offer', ({ roomId, sdp, isVideo }) => {
-    console.log(`📡 Oferta WebRTC recibida de ${socket.user.id} para room ${roomId}`);
-    const socketsInRoom = io.sockets.adapter.rooms.get(roomId);
-    console.log(`👥 Usuarios en el room:`, socketsInRoom ? [...socketsInRoom] : 'ninguno');
+  function sendToUserSocketIdOrRoom({ toUserId, roomId, event, payload }) {
+    if (toUserId) {
+      const targetSocketId = userSockets[toUserId];
+      if (targetSocketId) {
+        io.to(targetSocketId).emit(event, payload);
+        console.log(`📨 Señal enviada a user ${toUserId} (socket ${targetSocketId}) evento=${event}`);
+        return true;
+      } else {
+        console.log(`⚠️ userSockets no contiene a ${toUserId}, fallback a room ${roomId}`);
+      }
+    }
+    if (roomId) {
+      socket.to(roomId).emit(event, payload);
+      console.log(`📤 Señal broadcast a room ${roomId} evento=${event}`);
+      return true;
+    }
+    console.warn('⚠️ No se pudo enviar señal — faltan toUserId y roomId', { event, payload });
+    return false;
+  }
 
-    socket.to(roomId).emit('webrtc:offer', { from: socket.user.id, sdp, isVideo });
-    console.log(`📤 Oferta reenviada a room ${roomId}`);
+
+  // Llamada inicial (caller -> notify callee)
+  socket.on('webrtc:call-user', ({ toUserId, isVideo }) => {
+    try {
+      const fromUserId = socket.user?.id || socket.id;
+      console.log('webrtc:call-user', { toUserId, fromUserId, isVideo });
+
+      sendToUserSocketIdOrRoom({
+        toUserId,
+        roomId: null,
+        event: 'incoming-call',
+        payload: { fromUserId, isVideo }
+      });
+    } catch (err) {
+      console.error('❌ Error manejando webrtc:call-user', err);
+    }
   });
 
+  // Caller accepted / callee notified caller that accept happened
+  socket.on('webrtc:accept-call', ({ toUserId }) => {
+    try {
+      const fromUserId = socket.user?.id || socket.id;
+      console.log('webrtc:accept-call from', fromUserId, 'to', toUserId);
 
-  socket.on('webrtc:answer', ({ roomId, sdp }) => {
-    console.log('⬅️ [server] webrtc:answer RECEIVED from', socket.user.id, 'roomId:', roomId);
-    socket.to(roomId).emit('webrtc:answer', { from: socket.user.id, roomId, sdp });
+      sendToUserSocketIdOrRoom({
+        toUserId,
+        roomId: null,
+        event: 'webrtc:call-accepted',
+        payload: { fromUserId }
+      });
+    } catch (err) {
+      console.error('❌ Error manejando webrtc:accept-call', err);
+    }
   });
 
-  socket.on('webrtc:ice-candidate', ({ roomId, candidate }) => {
-    console.log('⬅️ [server] ice-candidate from', socket.user.id, 'roomId:', roomId);
-    socket.to(roomId).emit('webrtc:ice-candidate', { from: socket.user.id, roomId, candidate });
+  // Offer (SDP) relay
+  socket.on('webrtc:offer', ({ toUserId, sdp }) => {
+    try {
+      const fromUserId = socket.user?.id || socket.id;
+      console.log('webrtc:offer from', fromUserId, 'to', toUserId);
+
+      if (!toUserId || !sdp) {
+        console.warn('⚠️ webrtc:offer missing fields, ignoring', { toUserId, sdp });
+        return;
+      }
+
+      sendToUserSocketIdOrRoom({
+        toUserId,
+        roomId: null,
+        event: 'webrtc:offer',
+        payload: { fromUserId, sdp }
+      });
+    } catch (err) {
+      console.error('❌ Error manejando webrtc:offer:', err);
+    }
   });
 
-  socket.on('webrtc:end-call', ({ roomId }) => {
-    console.log('⬅️ [server] end-call from', socket.user.id, 'roomId:', roomId);
-    socket.to(roomId).emit('webrtc:end-call', { from: socket.user.id, roomId });
+  // Answer (SDP) relay
+  socket.on('webrtc:answer', ({ toUserId, sdp }) => {
+    try {
+      const fromUserId = socket.user?.id || socket.id;
+      console.log('webrtc:answer from', fromUserId, 'to', toUserId);
+
+      if (!toUserId || !sdp) {
+        console.warn('⚠️ webrtc:answer missing fields, ignoring', { toUserId, sdp });
+        return;
+      }
+
+      sendToUserSocketIdOrRoom({
+        toUserId,
+        roomId: null,
+        event: 'webrtc:answer',
+        payload: { fromUserId, sdp }
+      });
+    } catch (err) {
+      console.error('❌ Error manejando webrtc:answer:', err);
+    }
+  });
+
+  // ICE candidate
+  socket.on('webrtc:ice-candidate', ({ toUserId, candidate }) => {
+    try {
+      const fromUserId = socket.user?.id || socket.id;
+      console.log('webrtc:ice-candidate from', fromUserId, 'to', toUserId);
+
+      if (!toUserId || !candidate) {
+        console.warn('⚠️ webrtc:ice-candidate missing fields, ignoring', { toUserId, candidate });
+        return;
+      }
+
+      sendToUserSocketIdOrRoom({
+        toUserId,
+        roomId: null,
+        event: 'webrtc:ice-candidate',
+        payload: { fromUserId, candidate }
+      });
+    } catch (err) {
+      console.error('❌ Error manejando webrtc:ice-candidate', err);
+    }
+  });
+
+  // End call relay
+  socket.on('webrtc:end-call', ({ toUserId }) => {
+    try {
+      const fromUserId = socket.user?.id || socket.id;
+      console.log('webrtc:end-call from', fromUserId, 'to', toUserId);
+
+      sendToUserSocketIdOrRoom({
+        toUserId,
+        roomId: null,
+        event: 'webrtc:end-call',
+        payload: { fromUserId }
+      });
+    } catch (err) {
+      console.error('❌ Error manejando webrtc:end-call', err);
+    }
   });
 
 });

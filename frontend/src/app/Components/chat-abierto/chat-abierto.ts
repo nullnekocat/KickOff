@@ -1,21 +1,23 @@
 import { CommonModule, NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterModule } from '@angular/router';
 import { Subscription } from 'rxjs';
+import { ChangeDetectorRef } from '@angular/core';
 
 import { environment } from '../../environments/environment';
 import { SocketService } from '../../services/socket.service';
 import { ChatSelectionService, SelectedChat } from '../../services/chat-selection.service';
 import { MessageService, MediaData } from '../../services/message.service';
 import { EncryptionService } from '../../services/encryption.service';
-import { WebRTCService } from '../../services/webrtc.service';
+import { WebrtcService } from '../../services/webrtc.service';
 
 @Component({
   selector: 'app-chat-abierto',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule, MatIconModule],
+  providers: [WebrtcService], // 🔧 AÑADIDO: instancia separada por componente
   templateUrl: './chat-abierto.html',
   styleUrls: ['./chat-abierto.css']
 })
@@ -39,38 +41,51 @@ export class ChatAbierto implements OnInit, OnDestroy {
   // Estados de llamada
   abrirLlamadaVoz = false;
   abrirVideollamada = false;
-  enLlamada = false;
+
+  callState: 'idle' | 'calling' | 'incoming' | 'inCall' = 'idle';
+  incomingFrom: string | null = null;
+  activeTarget: string | null = null;
+
+  // Subscripciones
+  private subs: Subscription[] = [];
 
   // Llamada entrante
   llamadaEntrante = false;
   tipoLlamadaEntrante: 'voz' | 'video' | null = null;
   nombreLlamante: string | null = null;
+  idLlamante: string | null = null;
 
   @ViewChild('messagesContainer') private messagesContainer!: ElementRef;
-  @ViewChild('localVideo') localVideoRef!: ElementRef<HTMLVideoElement>;
-  @ViewChild('remoteVideo') remoteVideoRef!: ElementRef<HTMLVideoElement>;
+  @ViewChild('localVideo', { static: false }) localVideo!: ElementRef<HTMLVideoElement>;
+  @ViewChild('remoteVideo', { static: false }) remoteVideo!: ElementRef<HTMLVideoElement>;
 
   constructor(
     private socketService: SocketService,
     private chatSelection: ChatSelectionService,
     private messageService: MessageService,
     private encryptionService: EncryptionService,
-    private webrtcService: WebRTCService
+    private webrtcService: WebrtcService,
+    private cd: ChangeDetectorRef,
+    
   ) { }
 
+  
   async ngOnInit(): Promise<void> {
-    // Obtener usuario actual
-    const res = await fetch(`${environment.apiUrl}/api/users/me`, { credentials: 'include' });
-    const user = await res.json();
-    this.currentUserId = user.id;
-    this.currentUserName = user.name;
-    localStorage.setItem('currentUserId', user.id);
+    
+    try {
+      const res = await fetch(`${environment.apiUrl}/api/users/me`, { credentials: 'include' });
+      const user = await res.json();
+      this.currentUserId = user.id;
+      this.currentUserName = user.name;
+      localStorage.setItem('currentUserId', user.id);
+    } catch (err) {
+      console.error('Error fetching current user:', err);
+    }
 
     if (!this.encryptionService.getPublicKey() || !this.encryptionService.getPrivateKey()) {
       await this.encryptionService.generateAndStoreKeyPair();
     }
 
-    // Mensajes
     this.socketService.onMessage((msg) => {
       if (msg.roomId !== this.roomId || msg.senderId === this.currentUserId) return;
       const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -98,12 +113,10 @@ export class ChatAbierto implements OnInit, OnDestroy {
       setTimeout(() => this.scrollToBottom(), 10);
     });
 
-    // roomKey ready
     this.socketService.roomKeyReady$.subscribe(roomId => {
       if (roomId === this.roomId) this.roomKeyReady = true;
     });
 
-    // Chat seleccionado
     this.selSub = this.chatSelection.selected$.subscribe(async sel => {
       this.selectedChat = sel;
       this.messages = [];
@@ -119,7 +132,7 @@ export class ChatAbierto implements OnInit, OnDestroy {
 
       let newRoom: string;
       if (sel.type === 'grupo') {
-        newRoom = sel.id; // _id del grupo
+        newRoom = sel.id;
       } else {
         newRoom = [this.currentUserId, sel.id].sort().join('_');
       }
@@ -137,30 +150,85 @@ export class ChatAbierto implements OnInit, OnDestroy {
       }
     });
 
-    // WebRTC — llamada entrante
-    this.webrtcService.onIncomingCallDetailed(({ from, isVideo }) => {
-      console.log('📩 Llamada entrante de', from, isVideo ? 'Video' : 'Voz');
-      this.llamadaEntrante = true;
-      this.tipoLlamadaEntrante = isVideo ? 'video' : 'voz';
-      this.nombreLlamante = from;
-    });
+    const s1 = this.webrtcService.onIncomingCallDetailed()
+      .subscribe(({ from, isVideo }: { from: string; isVideo: boolean }) => {
+        this.callState = 'incoming';
+        this.incomingFrom = from;
+        this.llamadaEntrante = true;
+        this.tipoLlamadaEntrante = isVideo ? 'video' : 'voz';
+        this.idLlamante = from;
 
-    // Stream remoto
-    this.webrtcService.onRemoteStream(remote => {
-      if (this.remoteVideoRef?.nativeElement) this.remoteVideoRef.nativeElement.srcObject = remote;
-    });
+        const caller = this.otherUser;
+        this.nombreLlamante = caller ? caller.name : 'Usuario desconocido';
 
-    // Cuando termina llamada
-    this.webrtcService.onCallEnded(() => {
-      this.abrirLlamadaVoz = false;
-      this.abrirVideollamada = false;
-      this.enLlamada = false;
-    });
+        try { this.cd.detectChanges(); } catch (e) { }
 
-    // Estado online/offline
+      });
+    this.subs.push(s1);
+
+    const s2 = this.webrtcService.onLocalStream()
+      .subscribe(stream => {
+        if (!stream) {
+          if (this.localVideo?.nativeElement) {
+            this.localVideo.nativeElement.srcObject = null;
+          }
+          return;
+        }
+        this.cd.detectChanges();
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            if (this.localVideo?.nativeElement) {
+              this.attachStream(this.localVideo.nativeElement, stream, true);
+            } else {
+              console.warn('localVideo element not found in DOM');
+            }
+          });
+        });
+      });
+    this.subs.push(s2);
+
+
+    const s3 = this.webrtcService.onRemoteStream()
+      .subscribe(stream => {
+        if (!stream) {
+          if (this.remoteVideo?.nativeElement) {
+            this.remoteVideo.nativeElement.srcObject = null;
+          }
+          return;
+        }
+        if (this.callState === 'calling') {
+          this.callState = 'inCall';
+          try { this.cd.detectChanges(); } catch (e) { /* ignore */ }
+        }
+        this.cd.detectChanges();
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            if (this.remoteVideo?.nativeElement) {
+              this.attachStream(this.remoteVideo.nativeElement, stream, false);
+            } else {
+              setTimeout(() => {
+                if (this.remoteVideo?.nativeElement) {
+                  this.attachStream(this.remoteVideo.nativeElement, stream, false);
+                } else {
+                  console.error('remoteVideo STILL not in DOM after retry');
+                }
+              }, 200);
+            }
+          });
+        });
+      });
+    this.subs.push(s3);
+
+    const s4 = this.webrtcService.onCallEnded()
+      .subscribe(() => {
+        this.cleanupCallUI();
+      });
+    this.subs.push(s4);
+
     this.socketService.onUserStatusChange(({ userId, status }) => {
-      if (this.selectedChat?.id === userId)
+      if (this.selectedChat?.id === userId) {
         this.selectedChat.status = status;
+      }
     });
   }
 
@@ -179,24 +247,21 @@ export class ChatAbierto implements OnInit, OnDestroy {
           isEncrypted: m.isEncrypted,
           media: m.media || null
         })));
-        console.log(this.messages);
         setTimeout(() => this.scrollToBottom(), 200);
       }
     });
-
   }
+
   private resolveSenderName(senderId: any): string {
     const sid = String(senderId);
     const me = String(this.currentUserId);
 
     if (sid === me) return this.currentUserName;
 
-    // Privado: usamos otherUser si existe
     if (this.selectedChat?.type === 'privado') {
       return this.otherUser?.name || 'Usuario';
     }
 
-    // Grupo: buscar entre integrantes (strings)
     const found = this.integrantes?.find(m => String(m._id) === sid);
     return found ? (found.name || found.fullname || 'Usuario') : 'Usuario';
   }
@@ -204,7 +269,9 @@ export class ChatAbierto implements OnInit, OnDestroy {
   toggleEncryption() {
     if (!this.roomKeyReady) return;
     this.encryptionEnabled = !this.encryptionEnabled;
-    if (this.roomId) localStorage.setItem(`encEnabled_${this.roomId}`, JSON.stringify(this.encryptionEnabled));
+    if (this.roomId) {
+      localStorage.setItem(`encEnabled_${this.roomId}`, JSON.stringify(this.encryptionEnabled));
+    }
   }
 
   private loadEncryptionState(roomId: string) {
@@ -213,93 +280,157 @@ export class ChatAbierto implements OnInit, OnDestroy {
   }
 
   async sendMessage() {
-    if (this.inputMessage.trim() && this.roomId)
+    if (this.inputMessage.trim() && this.roomId) {
       await this.socketService.sendMessage(this.roomId, this.inputMessage, this.encryptionEnabled);
+    }
     this.inputMessage = '';
   }
 
   async sendFile(event: any) {
     const file = event.target.files[0];
-    if (file && this.roomId)
+    if (file && this.roomId) {
       await this.socketService.sendMediaMessage(this.roomId, file, this.encryptionEnabled);
+    }
     event.target.value = '';
   }
 
   scrollToBottom() {
-    if (this.messagesContainer)
-      this.messagesContainer.nativeElement.scrollTop = this.messagesContainer.nativeElement.scrollHeight;
+    if (this.messagesContainer) {
+      this.messagesContainer.nativeElement.scrollTop =
+        this.messagesContainer.nativeElement.scrollHeight;
+    }
   }
 
   // --- Llamadas --- //
-  async iniciarLlamadaVoz() {
-    if (!this.roomId) return;
-    console.log('📞 Iniciando llamada de voz...');
-    this.abrirLlamadaVoz = true;
-
-    try {
-      const stream = await this.webrtcService.startCall(this.roomId, false);
-      if (stream && this.localVideoRef?.nativeElement) this.localVideoRef.nativeElement.srcObject = stream;
-      this.enLlamada = true;
-    } catch (err) {
-      console.error('❌ Error iniciando llamada de voz:', err);
+  async startCall() {
+    if (this.callState !== 'idle') {
+      console.warn('Ya hay una llamada en curso');
+      return;
     }
-  }
 
-  async iniciarVideollamada() {
-    if (!this.roomId) return;
-    console.log('🎥 Iniciando videollamada...');
+    const selected = this.chatSelection.getSelected();
+    if (!selected?.id) {
+      console.warn('No hay chat seleccionado');
+      return;
+    }
+
+    const targetUserId = selected.id;
+
+    this.callState = 'calling';
+    this.activeTarget = targetUserId;
     this.abrirVideollamada = true;
 
     try {
-      const stream = await this.webrtcService.startCall(this.roomId, true);
-      if (stream && this.localVideoRef?.nativeElement) this.localVideoRef.nativeElement.srcObject = stream;
-      this.enLlamada = true;
+      await this.webrtcService.callUser(targetUserId);
     } catch (err) {
-      console.error('❌ Error iniciando videollamada:', err);
+      console.error('rror iniciando llamada:', err);
+      this.cleanupCallUI();
     }
   }
 
-  async aceptarLlamadaEntrante() {
-    if (!this.roomId) return;
+  async acceptCall() {
+    if (!this.incomingFrom) {
+      console.warn('No hay llamada entrante');
+      return;
+    }
+
+    const from = this.incomingFrom;
+
+    console.log('Aceptando llamada de', from);
+
     this.llamadaEntrante = false;
-    console.log('✅ Aceptando llamada entrante...');
+    this.abrirVideollamada = true;
+    this.callState = 'inCall';
+    this.activeTarget = from;
+
+    // 🔧 El servicio se encarga de obtener el stream
+    try {
+      await this.webrtcService.acceptCall(from);
+      this.incomingFrom = null;
+    } catch (err) {
+      console.error('Error aceptando llamada:', err);
+      this.cleanupCallUI();
+    }
+  }
+
+  rejectCall() {
+    if (!this.incomingFrom) return;
+
+    console.log('Rechazando llamada de', this.incomingFrom);
+
+    this.webrtcService.rejectCall(this.incomingFrom);
+    this.cleanupCallUI();
+  }
+
+  hangUp() {
+    console.log('Colgando llamada');
+
+    this.webrtcService.endCall();
+    this.cleanupCallUI();
+  }
+
+  private cleanupCallUI() {
+    this.callState = 'idle';
+    this.incomingFrom = null;
+    this.activeTarget = null;
+    this.abrirVideollamada = false;
+    this.abrirLlamadaVoz = false;
+    this.llamadaEntrante = false;
+    this.nombreLlamante = null;
+    this.idLlamante = null;
+
+    // Limpiar elementos de video
+    if (this.localVideo?.nativeElement) {
+      try {
+        this.localVideo.nativeElement.srcObject = null;
+      } catch (e) { }
+    }
+    if (this.remoteVideo?.nativeElement) {
+      try {
+        this.remoteVideo.nativeElement.srcObject = null;
+      } catch (e) { }
+    }
+  }
+
+  private attachStream(
+    video: HTMLVideoElement,
+    stream: MediaStream,
+    isLocal: boolean
+  ) {
+    if (!video || !stream) {
+      console.warn('⚠️ attachStream: video o stream es null');
+      return;
+    }
 
     try {
-      const stream = await this.webrtcService.acceptIncomingCall(this.roomId);
-      if (stream && this.localVideoRef?.nativeElement)
-        this.localVideoRef.nativeElement.srcObject = stream;
+      const prev = video.srcObject as MediaStream | null;
 
-      this.webrtcService.onRemoteStream(remote => {
-        if (remote && this.remoteVideoRef?.nativeElement)
-          this.remoteVideoRef.nativeElement.srcObject = remote;
-      });
+      // Si es exactamente el mismo stream, no hacer nada
+      if (prev && prev.id === stream.id) {
+        const prevIds = prev.getTracks().map(t => t.id).sort().join(',');
+        const newIds = stream.getTracks().map(t => t.id).sort().join(',');
+        if (prevIds === newIds) {
+          return;
+        }
+      }
 
-      if (this.tipoLlamadaEntrante === 'video') this.abrirVideollamada = true;
-      else this.abrirLlamadaVoz = true;
+      video.srcObject = stream;
+      video.playsInline = true;
+      video.muted = isLocal; // Solo mutear el video local
 
-      this.enLlamada = true;
+      // Event listener para metadata
+      const onLoaded = () => {
+        video.removeEventListener('loadedmetadata', onLoaded);
+      };
+      video.addEventListener('loadedmetadata', onLoaded);
+
     } catch (err) {
-      console.error('❌ Error al aceptar llamada:', err);
+      console.error('attachStream error:', err);
     }
   }
 
-  rechazarLlamadaEntrante() {
-    console.log('🚫 Llamada rechazada');
-    this.webrtcService.rejectIncomingCall();
-    this.llamadaEntrante = false;
-  }
-
-  cerrarLlamada() {
-    console.log('📴 Cerrando llamada');
-    this.webrtcService.endCall();
-    this.abrirLlamadaVoz = false;
-    this.abrirVideollamada = false;
-    this.enLlamada = false;
-    if (this.localVideoRef?.nativeElement) this.localVideoRef.nativeElement.srcObject = null;
-    if (this.remoteVideoRef?.nativeElement) this.remoteVideoRef.nativeElement.srcObject = null;
-  }
-
-  ngOnDestroy() {
+  ngOnDestroy(): void {
+    this.subs.forEach(s => s.unsubscribe());
     this.selSub?.unsubscribe();
   }
 }
